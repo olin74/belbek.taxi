@@ -1,16 +1,14 @@
-# This is a sample Python script.
+#pip install pytelegrambotapi
 
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
+import telebot
 
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
+bot = telebot.TeleBot('2083207800:AAFZ1QgWt4mYRv2Aw3gI-i2fmjvvDjZoqH4')
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+@bot.message_handler(commands=['start'])
+def start_message(message):
+    bot.send_message(message.chat.id, 'Бот в разработке, за Вами никто не приедет.')
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+@bot.message_handler(content_types=['text'])
+def send_text(message):
+    bot.send_message(message.chat.id, 'Говорю же, никто не приедет. Ждите запуска бота')
