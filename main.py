@@ -10,7 +10,7 @@ def app():
     bot = telebot.TeleBot(TELEBOT_TOKEN)
 
     #redis_data = redis.StrictRedis.from_url(REDIS_URL)
-    redis_data = redis.Redis()
+    redis_data = redis.Redis(host='localhost', port=6379, decode_responses=True)
     if 'count_drivers' not in redis_data:
         redis_data['count_drivers'] = 0
     count_drivers = redis_data['count_drivers']
