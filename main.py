@@ -2,7 +2,7 @@ import redis
 import telebot
 import json
 
-REDIS_URL = 'redis://SJqkqqj7NXTXcEWHM6khiao0@ckv40fbvl001j0ub9gbr0g8ry:6379'
+REDIS_URL = 'redis://due_fly:SJqkqqj7NXTXcEWHM6khiao0@ckv40fbvl001j0ub9gbr0g8ry:6379'
 TELEBOT_TOKEN = '2083207800:AAFZ1QgWt4mYRv2Aw3gI-i2fmjvvDjZoqH4'
 
 
