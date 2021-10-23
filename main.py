@@ -6,12 +6,10 @@ REDIS_URL = 'redis://Z3rXtadcdy2nW0TIHXCCFP3J@ckv2rp80d000v0ub978gb171y:6379'
 TELEBOT_TOKEN = '2083207800:AAFZ1QgWt4mYRv2Aw3gI-i2fmjvvDjZoqH4'
 
 
-def app(redis_url=REDIS_URL):
+def app():
     bot = telebot.TeleBot(TELEBOT_TOKEN)
-    if redis_url == '':
-        redis_data = redis.Redis()
-    else:
-        redis_data = redis.StrictRedis.from_url(redis_url)
+
+    redis_data = redis.StrictRedis.from_url(REDIS_URL)
     if 'count_drivers' not in redis_data:
         redis_data['count_drivers'] = 0
     count_drivers = redis_data['count_drivers']
@@ -40,4 +38,4 @@ def app(redis_url=REDIS_URL):
 
 
 if __name__ == "__main__":
-    app('')
+    app()
