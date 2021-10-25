@@ -23,7 +23,7 @@ CONTENT_TYPES = ["text", "audio", "document", "photo", "sticker", "video", "vide
 
 
 def app():
-    # redis_url = 'redis://:@localhost:6379'
+    #redis_url = 'redis://:@localhost:6379'
     redis_url = REDIS_URL
     bot = telebot.TeleBot(TELEBOT_TOKEN)
     drivers = {'about': redis.from_url(redis_url, db=1),
@@ -36,14 +36,14 @@ def app():
                'impressions': redis.from_url(redis_url, db=8),
                'last_impression': redis.from_url(redis_url, db=9),
                'deposit': redis.from_url(redis_url, db=10),
-               'name': redis.from_url(redis_url, db=11)}
+               'name': redis.from_url(redis_url, db=11),
+               'username': redis.from_url(redis_url, db=12)}
 
-    clients_search = redis.from_url(redis_url, db=12)
+    clients_search = redis.from_url(redis_url, db=15)
 
     menu_items = ['👍 Поиск машины', '🚕 Я водитель']
     menu_car_items = ['Изменить объявление', 'Изменить радиус', 'Изменить цену за км', 'Выход', "✳️ Поиск пассажира ✳️"]
     menu_stop = "⛔️ Прекратить поиск ⛔️"
-
 
     def get_avg(field: str):
         tot = 0
@@ -63,7 +63,6 @@ def app():
         print(username)
         if username in drivers['status']:
             print(drivers['status'][username])
-
 
         if username in drivers['status'] and int(drivers['status'][username]) >= 0:
             drivers['status'][username] = -1
@@ -140,6 +139,9 @@ def app():
                      types.KeyboardButton(text=menu_car_items[1]))
         menu_car.row(types.KeyboardButton(text=menu_car_items[2]),
                      types.KeyboardButton(text=menu_car_items[3]))
+        menu_car_text = "Ваш профиль:\n" + get_profile(username)
+        if message.chat.username is not None:
+            drivers['username'][username] = message.chat.username
         if username in drivers['about'] and username in drivers['radius'] and username in drivers['price']:
             if username not in drivers['deposit']:
                 drivers['deposit'][username] = 0
@@ -151,15 +153,18 @@ def app():
             if message.chat.last_name is not None:
                 name = name + " " + message.chat.last_name
             drivers['name'][username] = name
-        menu_car_text = "Ваш профиль:\n" + get_profile(username)
 
         if username in drivers['status'] and int(drivers['status'][username]) == 0:
-            if int(drivers['deposit'][username]) >= DEPOSIT_LIMIT:
-                menu_car.row(types.KeyboardButton(text=menu_car_items[4], request_location=True))
-                menu_car_text = menu_car_text + f"\n🚕 Для поиска пассажира нажмите “Поиск пассажира” (или отправьте" \
-                                                f" свои координаты текстом)."
+            if message.chat.username is not None:
+                if int(drivers['deposit'][username]) >= DEPOSIT_LIMIT:
+                    menu_car.row(types.KeyboardButton(text=menu_car_items[4], request_location=True))
+                    menu_car_text = menu_car_text + f"\n🚕 Для поиска пассажира нажмите “Поиск пассажира” " \
+                                                    f"(или отправьте свои координаты текстом)."
+                else:
+                    menu_car_text = menu_car_text + f"\n\n{LIMIT_MESSAGE}"
             else:
-                menu_car_text = menu_car_text + f"\n\n{LIMIT_MESSAGE}"
+                menu_car_text = menu_car_text + f"\n\nЗадайте в профиле имя пользователя," \
+                                                f" что бы бот мог направить вам пассажиров."
         else:
             menu_car_text = menu_car_text + "\n\n Заполните все поля, что бы начать поиск пассажиров!"
         bot.send_message(message.chat.id, menu_car_text, reply_markup=menu_car)
@@ -205,7 +210,7 @@ def app():
                     result_message = result_message + f"🚕 {drivers['about'][user_driver].decode('utf-8')}\n" \
                                                       f"🚖: {dist:.2f} км\n" \
                                                       f"💰: {int(drivers['price'][user_driver])} руб/км\n" \
-                                                      f"@{user_driver}\n\n"
+                                                      f"@{drivers['username'].decode('utf-8')}\n\n"
                     if user_driver not in search_list:
                         inc_impression(user_driver)
         str_json = json.dumps(result_list)
