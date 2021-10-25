@@ -6,9 +6,10 @@ import time
 import datetime
 import re
 import json
+import os
 
-REDIS_URL = 'redis://:SJqkqqj7NXTXcEWHM6khiao0@ckv40fbvl001j0ub9gbr0g8ry:6379'
-TELEBOT_TOKEN = '2083207800:AAFZ1QgWt4mYRv2Aw3gI-i2fmjvvDjZoqH4'
+REDIS_URL = os.environ['REDIS_URL']
+TELEBOT_TOKEN = os.environ['TELEBOT_TOKEN']
 DEPOSIT_LIMIT = -300
 LIMIT_MESSAGE = f"Ваш баланс исчерпан, лимит {DEPOSIT_LIMIT}. Для пополнения свяжитесь с @whitejoe"
 ADMIN_LIST = [665812965]
@@ -155,12 +156,12 @@ def app():
             if message.chat.username is not None:
                 if int(drivers['deposit'][username]) >= DEPOSIT_LIMIT:
                     menu_car.row(types.KeyboardButton(text=menu_car_items[4], request_location=True))
-                    menu_car_text = menu_car_text + f"\n🚕 Для поиска пассажира нажмите “Поиск пассажира” " \
+                    menu_car_text = menu_car_text + f"\n\n🚕 Для поиска пассажира нажмите “Поиск пассажира” " \
                                                     f"(или отправьте свои координаты текстом)."
                 else:
                     menu_car_text = menu_car_text + f"\n\n{LIMIT_MESSAGE}"
             else:
-                menu_car_text = menu_car_text + f"\n\nЗадайте в профиле имя пользователя," \
+                menu_car_text = menu_car_text + f"\n\nЗадайте имя пользователя в аккаунте Telegram," \
                                                 f" что бы бот мог направить вам пассажиров."
         else:
             menu_car_text = menu_car_text + "\n\n Заполните все поля, что бы начать поиск пассажиров!"
