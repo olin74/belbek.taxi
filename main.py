@@ -60,9 +60,6 @@ def app():
         menu_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
         menu_keyboard.row(types.KeyboardButton(text=menu_items[0], request_location=True),
                           types.KeyboardButton(text=menu_items[1]))
-        print(username)
-        if username in drivers['status']:
-            print(drivers['status'][username])
 
         if username in drivers['status'] and int(drivers['status'][username]) >= 0:
             drivers['status'][username] = -1
@@ -210,7 +207,7 @@ def app():
                     result_message = result_message + f"🚕 {drivers['about'][user_driver].decode('utf-8')}\n" \
                                                       f"🚖: {dist:.2f} км\n" \
                                                       f"💰: {int(drivers['price'][user_driver])} руб/км\n" \
-                                                      f"@{drivers['username'][username].decode('utf-8')}\n\n"
+                                                      f"@{drivers['username'][user_driver].decode('utf-8')}\n\n"
                     if user_driver not in search_list:
                         inc_impression(user_driver)
         str_json = json.dumps(result_list)
