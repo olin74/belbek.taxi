@@ -9,9 +9,9 @@ import json
 
 REDIS_URL = 'redis://:SJqkqqj7NXTXcEWHM6khiao0@ckv40fbvl001j0ub9gbr0g8ry:6379'
 TELEBOT_TOKEN = '2083207800:AAFZ1QgWt4mYRv2Aw3gI-i2fmjvvDjZoqH4'
-DEPOSIT_LIMIT = -100
+DEPOSIT_LIMIT = -300
 LIMIT_MESSAGE = f"Ваш баланс исчерпан, лимит {DEPOSIT_LIMIT}. Для пополнения свяжитесь с @whitejoe"
-ADMIN_LIST = ['whitejoe']
+ADMIN_LIST = [665812965]
 ABOUT_LIMIT = 100
 SEARCH_LIVE_TIME = 300
 IMPRESSION_COST = 1
@@ -23,8 +23,8 @@ CONTENT_TYPES = ["text", "audio", "document", "photo", "sticker", "video", "vide
 
 
 def app():
-    redis_url = 'redis://:@localhost:6379'
-    # redis_url = REDIS_URL
+    # redis_url = 'redis://:@localhost:6379'
+    redis_url = REDIS_URL
     bot = telebot.TeleBot(TELEBOT_TOKEN)
     drivers = {'about': redis.from_url(redis_url, db=1),
                'radius': redis.from_url(redis_url, db=2),
@@ -35,13 +35,15 @@ def app():
                'geo_lat': redis.from_url(redis_url, db=7),
                'impressions': redis.from_url(redis_url, db=8),
                'last_impression': redis.from_url(redis_url, db=9),
-               'deposit': redis.from_url(redis_url, db=10)}
+               'deposit': redis.from_url(redis_url, db=10),
+               'name': redis.from_url(redis_url, db=11)}
 
-    clients_search = redis.from_url(redis_url, db=11)
+    clients_search = redis.from_url(redis_url, db=12)
 
     menu_items = ['👍 Поиск машины', '🚕 Я водитель']
     menu_car_items = ['Изменить объявление', 'Изменить радиус', 'Изменить цену за км', 'Выход', "✳️ Поиск пассажира ✳️"]
     menu_stop = "⛔️ Прекратить поиск ⛔️"
+
 
     def get_avg(field: str):
         tot = 0
@@ -54,31 +56,47 @@ def app():
         return int(tot / count)
 
     def go_start(message):
-        username = message.chat.username
+        username = message.chat.id
         menu_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
         menu_keyboard.row(types.KeyboardButton(text=menu_items[0], request_location=True),
                           types.KeyboardButton(text=menu_items[1]))
-        menu_message = f"👍 Для поиска машины нажмите “Поиск машины” (или отправьте свои координаты текстом)," \
-                       f" бот запросит геопозицию и предложит связаться с " \
-                       f"водителями, готовыми приехать за вами. "
+        print(username)
+        if username in drivers['status']:
+            print(drivers['status'][username])
+
+
         if username in drivers['status'] and int(drivers['status'][username]) >= 0:
             drivers['status'][username] = -1
         if username in drivers['wait'] and int(drivers['wait'][username]) >= 0:
             drivers['wait'][username] = -1
+        total = 0
+        active = 0
+        for dr in drivers['status'].keys():
+            total += 1
+            if int(drivers['status'][dr]) == 1:
+                active += 1
+        clients_count = 0
+        for _ in clients_search.keys():
+            clients_count += 1
+        menu_message = f"Водителей зарегестрировно: {total}\nСейчас доступно: {active}\n" \
+                       f"Пассажиров в поиске: {clients_count}\n 👍 Для поиска машины нажмите “Поиск машины”" \
+                       f" (или отправьте свои координаты текстом)," \
+                       f" бот предложит связаться с водителями, готовыми приехать за вами. "
+
         bot.send_message(message.chat.id, menu_message, reply_markup=menu_keyboard)
 
     def go_about(message):
         keyboard = types.ReplyKeyboardRemove()
-        username = message.chat.username
+        username = message.chat.id
         drivers['wait'][username] = 0
         bot.send_message(message.chat.id, f"Расскажите немного о себе и машине (не больше {ABOUT_LIMIT} символов),"
-                                          f" например: Ильдар. Синяя Хонда. Вожу быстро, но аккуртно.",
+                                          f" например: “Ильдар. Синяя Хонда. Вожу быстро, но аккуратно.”",
                          reply_markup=keyboard)
         return
 
     def go_radius(message):
         keyboard = types.ReplyKeyboardRemove()
-        username = message.chat.username
+        username = message.chat.id
         drivers['wait'][username] = 1
         avg_km = get_avg('radius')
         bot.send_message(message.chat.id, f"Задайте расстояние в километрах на которое вы готовы поехать за пассажиром."
@@ -87,7 +105,7 @@ def app():
 
     def go_price(message):
         keyboard = types.ReplyKeyboardRemove()
-        username = message.chat.username
+        username = message.chat.id
         drivers['wait'][username] = 2
         avg_price = get_avg('price')
         bot.send_message(message.chat.id, f"Напишите сколько денег обычно вы берёте за километр пути (примерно)."
@@ -112,11 +130,11 @@ def app():
             balance = int(drivers['deposit'][username])
 
         info = f"Объявление: {info_about}\nОриентировочная цена: {info_price}\nРадиус поиска: {info_radius}\n" \
-               f"Показов сегодгня: {impressions}\nБаланс: {balance}"
+               f"Показов сегодня: {impressions}\nБаланс: {balance}"
         return info
 
     def go_menu_car(message):
-        username = message.chat.username
+        username = message.chat.id
         menu_car = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
         menu_car.row(types.KeyboardButton(text=menu_car_items[0]),
                      types.KeyboardButton(text=menu_car_items[1]))
@@ -126,7 +144,15 @@ def app():
             if username not in drivers['deposit']:
                 drivers['deposit'][username] = 0
             drivers['status'][username] = 0
+            name = ""
+
+            if message.chat.first_name is not None:
+                name = name + message.chat.first_name
+            if message.chat.last_name is not None:
+                name = name + " " + message.chat.last_name
+            drivers['name'][username] = name
         menu_car_text = "Ваш профиль:\n" + get_profile(username)
+
         if username in drivers['status'] and int(drivers['status'][username]) == 0:
             if int(drivers['deposit'][username]) >= DEPOSIT_LIMIT:
                 menu_car.row(types.KeyboardButton(text=menu_car_items[4], request_location=True))
@@ -160,33 +186,35 @@ def app():
         drivers['last_impression'][user_driver] = curtime
 
     def go_search(message, location):
-        username = message.chat.username
+        username = message.chat.id
         result_list = []
         search_list = []
         result_message = ''
         if username in clients_search:
             search_list_str = clients_search[username].decode("utf-8")
             search_list = json.loads(search_list_str)
+        active_drivers = 0
         for user_driver_ne in drivers['status'].keys():
             user_driver = user_driver_ne.decode("utf-8")
             if int(drivers['status'][user_driver]) == 1:
+                active_drivers += 1
                 dist = get_distance(location['longitude'], location['latitude'],
                                     float(drivers['geo_long'][user_driver]), float(drivers['geo_lat'][user_driver]))
                 if dist < int(drivers['radius'][user_driver]):
                     result_list.append(user_driver)
                     result_message = result_message + f"🚕 {drivers['about'][user_driver].decode('utf-8')}\n" \
-                                                      f"Расстояние:{dist:.2f} км\n" \
-                                                      f"Примерная цена за км:{int(drivers['price'][user_driver])}\n" \
+                                                      f"🚖: {dist:.2f} км\n" \
+                                                      f"💰: {int(drivers['price'][user_driver])} руб/км\n" \
                                                       f"@{user_driver}\n\n"
                     if user_driver not in search_list:
                         inc_impression(user_driver)
         str_json = json.dumps(result_list)
         clients_search.setex(username, SEARCH_LIVE_TIME, str_json)
         bot.send_message(message.chat.id,
-                         f"Найдено водителей {len(result_list)}:\n\n{result_message}")
+                         f"Найдено водителей {len(result_list)} из {active_drivers} активных:\n\n{result_message}")
 
     def go_location(message, location):
-        username = message.chat.username
+        username = message.chat.id
         if username in drivers['status'] and int(drivers['status'][username]) >= 0 and\
                 int(drivers['deposit'][username]) >= DEPOSIT_LIMIT:
             drivers['status'][username] = 1
@@ -194,7 +222,7 @@ def app():
             drivers['geo_lat'][username] = location['latitude']
             search_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
             search_keyboard.row(types.KeyboardButton(text=menu_stop))
-            bot.send_message(message.chat.id, f"Идет поиск, потенциальным пассажирам в указанном вами радиусе бот"
+            bot.send_message(message.chat.id, f"Идет поиск. Потенциальным пассажирам в указанном вами радиусе бот"
                                               f" будет показывать ваше оъявление. Ждите, вам напишут.",
                              reply_markup=search_keyboard)
         else:
@@ -218,9 +246,17 @@ def app():
             bot.send_message(message.chat.id,
                              f"%USERNAME% какбе ошибсо {e}")
 
+    @bot.message_handler(commands=['list'])
+    def list_message(message):
+        if message.chat.id in ADMIN_LIST:
+            me = ""
+            for username in drivers['name'].keys():
+                me = me + f"{username.decode('utf-8')} - {drivers['name'][username].decode('utf-8')}\n"
+            bot.send_message(message.chat.id, me)
+
     @bot.message_handler(commands=['deposit'])
     def deposit_message(message):
-        if message.chat.username in ADMIN_LIST:
+        if message.chat.id in ADMIN_LIST:
             try:
                 username = message.text.split(' ')[1]
                 dep = int(message.text.split(' ')[2])
@@ -234,7 +270,7 @@ def app():
 
     @bot.message_handler(content_types=['text'])
     def message_text(message):
-        username = message.chat.username
+        username = message.chat.id
         if username in drivers['wait'] and int(drivers['wait'][username]) == 0:
             if len(message.text) <= ABOUT_LIMIT:
                 drivers['about'][username] = message.text
