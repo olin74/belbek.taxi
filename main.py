@@ -23,7 +23,7 @@ CONTENT_TYPES = ["text", "audio", "document", "photo", "sticker", "video", "vide
 
 
 def app():
-    #redis_url = 'redis://:@localhost:6379'
+    # redis_url = 'redis://:@localhost:6379'
     redis_url = REDIS_URL
     bot = telebot.TeleBot(TELEBOT_TOKEN)
     drivers = {'about': redis.from_url(redis_url, db=1),
@@ -210,7 +210,7 @@ def app():
                     result_message = result_message + f"🚕 {drivers['about'][user_driver].decode('utf-8')}\n" \
                                                       f"🚖: {dist:.2f} км\n" \
                                                       f"💰: {int(drivers['price'][user_driver])} руб/км\n" \
-                                                      f"@{drivers['username'].decode('utf-8')}\n\n"
+                                                      f"@{drivers['username'][username].decode('utf-8')}\n\n"
                     if user_driver not in search_list:
                         inc_impression(user_driver)
         str_json = json.dumps(result_list)
