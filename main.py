@@ -174,7 +174,7 @@ def app():
                                     float(drivers['geo_long'][user_driver]), float(drivers['geo_lat'][user_driver]))
                 if dist < int(drivers['radius'][user_driver]):
                     result_list.append(user_driver)
-                    result_message = result_message + f"{drivers['about'][user_driver].decode('utf-8')}\n" \
+                    result_message = result_message + f"🚕 {drivers['about'][user_driver].decode('utf-8')}\n" \
                                                       f"Расстояние:{dist:.2f} км\n" \
                                                       f"Примерная цена за км:{int(drivers['price'][user_driver])}\n" \
                                                       f"@{user_driver}\n\n"
@@ -183,7 +183,7 @@ def app():
         str_json = json.dumps(result_list)
         clients_search.setex(username, SEARCH_LIVE_TIME, str_json)
         bot.send_message(message.chat.id,
-                         f"Найдено водителей {len(result_list)}:\n\n {result_message}")
+                         f"Найдено водителей {len(result_list)}:\n\n{result_message}")
 
     def go_location(message, location):
         username = message.chat.username
