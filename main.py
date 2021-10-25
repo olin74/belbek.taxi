@@ -1,19 +1,20 @@
 import math
-
 import redis
 import telebot
 from telebot import types
 import time
+import datetime
 import re
-
-# import json
+import json
 
 REDIS_URL = 'redis://:SJqkqqj7NXTXcEWHM6khiao0@ckv40fbvl001j0ub9gbr0g8ry:6379'
 TELEBOT_TOKEN = '2083207800:AAFZ1QgWt4mYRv2Aw3gI-i2fmjvvDjZoqH4'
 DEPOSIT_LIMIT = -100
-LIMIT_MESSAGE = 'У вас исчерпан лимит показов, пожалуйста, свяжитесь с @whitejoe для пополнения баланса'
+LIMIT_MESSAGE = f"Ваш баланс исчерпан, лимит {DEPOSIT_LIMIT}. Для пополнения свяжитесь с @whitejoe"
 ADMIN_LIST = ['whitejoe']
 ABOUT_LIMIT = 100
+SEARCH_LIVE_TIME = 300
+IMPRESSION_COST = 1
 
 CONTENT_TYPES = ["text", "audio", "document", "photo", "sticker", "video", "video_note", "voice", "location", "contact",
                  "new_chat_members", "left_chat_member", "new_chat_title", "new_chat_photo", "delete_chat_photo",
@@ -25,8 +26,6 @@ def app():
     redis_url = 'redis://:@localhost:6379'
     # redis_url = REDIS_URL
     bot = telebot.TeleBot(TELEBOT_TOKEN)
-
-    redis_data = redis.from_url(redis_url, db=0)
     drivers = {'about': redis.from_url(redis_url, db=1),
                'radius': redis.from_url(redis_url, db=2),
                'price': redis.from_url(redis_url, db=3),
@@ -38,14 +37,8 @@ def app():
                'last_impression': redis.from_url(redis_url, db=9),
                'deposit': redis.from_url(redis_url, db=10)}
 
-    clients = {}
-    # redis_data = redis.Redis(host='localhost', port=6379, decode_responses=True)
-    if 'count_drivers' not in redis_data:
-        redis_data['count_drivers'] = 0
-    count_drivers = redis_data['count_drivers']
-    if 'count_start' not in redis_data:
-        redis_data['count_start'] = 0
-    count_start = redis_data['count_start']
+    clients_search = redis.from_url(redis_url, db=11)
+
     menu_items = ['👍 Поиск машины', '🚕 Я водитель']
     menu_car_items = ['Изменить объявление', 'Изменить радиус', 'Изменить цену за км', 'Выход', "✳️ Поиск пассажира ✳️"]
     menu_stop = "⛔️ Прекратить поиск ⛔️"
@@ -138,11 +131,9 @@ def app():
             if int(drivers['deposit'][username]) >= DEPOSIT_LIMIT:
                 menu_car.row(types.KeyboardButton(text=menu_car_items[4], request_location=True))
                 menu_car_text = menu_car_text + f"\n🚕 Для поиска пассажира нажмите “Поиск пассажира” (или отправьте" \
-                                                f" свои координаты текстом), в указанном вами радиуса бот будет" \
-                                                f" показывать ваше оъявление."
+                                                f" свои координаты текстом)."
             else:
-                menu_car_text = menu_car_text + f"\n\n Ваш баланс исчерпан, лимит {DEPOSIT_LIMIT}." \
-                                                f" Для пополнения свяжитесь с @whitejoe"
+                menu_car_text = menu_car_text + f"\n\n{LIMIT_MESSAGE}"
         else:
             menu_car_text = menu_car_text + "\n\n Заполните все поля, что бы начать поиск пассажиров!"
         bot.send_message(message.chat.id, menu_car_text, reply_markup=menu_car)
@@ -155,17 +146,44 @@ def app():
         lat1_rad = math.pi * lat1 / 180
         long2_rad = math.pi * long2 / 180
         lat2_rad = math.pi * lat2 / 180
-        return 2 * planet_radius * math.asin(math.sqrt(hav(long2_rad - long1_rad) +
-                                                math.cos(long1_rad) * math.cos(long1_rad) * hav(lat2_rad - lat1_rad)))
+        res = 2 * planet_radius * math.asin(math.sqrt(hav(long2_rad - long1_rad) + math.cos(long1_rad) *
+                                                      math.cos(long1_rad) * hav(lat2_rad - lat1_rad)))
+        return res
 
+    def inc_impression(user_driver):
+        curtime = int(time.time())
+        dt_timestamp = int(datetime.datetime.combine(datetime.date.today(), datetime.time(0, 0, 0)).timestamp())
+        if user_driver not in drivers['last_impression'] or int(drivers['last_impression'][user_driver]) < dt_timestamp:
+            drivers['impressions'][user_driver] = 0
+        drivers['impressions'][user_driver] = int(drivers['impressions'][user_driver]) + 1
+        drivers['deposit'][user_driver] = int(drivers['deposit'][user_driver]) - IMPRESSION_COST
+        drivers['last_impression'][user_driver] = curtime
 
     def go_search(message, location):
-
-
-
-        curtime = int(time.time())
+        username = message.chat.username
+        result_list = []
+        search_list = []
+        result_message = ''
+        if username in clients_search:
+            search_list_str = clients_search[username].decode("utf-8")
+            search_list = json.loads(search_list_str)
+        for user_driver_ne in drivers['status'].keys():
+            user_driver = user_driver_ne.decode("utf-8")
+            if int(drivers['status'][user_driver]) == 1:
+                dist = get_distance(location['longitude'], location['latitude'],
+                                    float(drivers['geo_long'][user_driver]), float(drivers['geo_lat'][user_driver]))
+                if dist < int(drivers['radius'][user_driver]):
+                    result_list.append(user_driver)
+                    result_message = result_message + f"{drivers['about'][user_driver].decode('utf-8')}\n" \
+                                                      f"Расстояние:{dist:.2f} км\n" \
+                                                      f"Примерная цена за км:{int(drivers['price'][user_driver])}\n" \
+                                                      f"@{user_driver}\n\n"
+                    if user_driver not in search_list:
+                        inc_impression(user_driver)
+        str_json = json.dumps(result_list)
+        clients_search.setex(username, SEARCH_LIVE_TIME, str_json)
         bot.send_message(message.chat.id,
-                         f"Тут немного не дописано, но по идее я уже тут предложу тебе список водителей")
+                         f"Найдено водителей {len(result_list)}:\n\n {result_message}")
 
     def go_location(message, location):
         username = message.chat.username
@@ -176,23 +194,20 @@ def app():
             drivers['geo_lat'][username] = location['latitude']
             search_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
             search_keyboard.row(types.KeyboardButton(text=menu_stop))
-            bot.send_message(message.chat.id, f"Ну, теперь кури бамбук, пассажиров ещё нет."
-                                              f" Но, если ты это читаешь, значит всё работает",
+            bot.send_message(message.chat.id, f"Идет поиск, потенциальным пассажирам в указанном вами радиусе бот"
+                                              f" будет показывать ваше оъявление. Ждите, вам напишут.",
                              reply_markup=search_keyboard)
         else:
             go_search(message, location)
-            go_start(message)
 
     @bot.message_handler(commands=['start'])
     def start_message(message):
-        redis_data['count_start'] = int(redis_data['count_start']) + 1
         bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
         go_start(message)
 
     @bot.message_handler(commands=['geo'])
     def geo_message(message):
         try:
-
             long1 = float(message.text.split(' ')[1])
             lat1 = float(message.text.split(' ')[2])
             long2 = float(message.text.split(' ')[3])
@@ -202,6 +217,7 @@ def app():
         except Exception as e:
             bot.send_message(message.chat.id,
                              f"%USERNAME% какбе ошибсо {e}")
+
     @bot.message_handler(commands=['deposit'])
     def deposit_message(message):
         if message.chat.username in ADMIN_LIST:
@@ -212,9 +228,9 @@ def app():
                 drivers['deposit'][username] = new_balance
                 bot.send_message(message.chat.id,
                                  f"Депозит пополнен на {dep}, новый баланс {new_balance}")
-            except:
+            except Exception as e:
                 bot.send_message(message.chat.id,
-                                 f"Админ, какбе ошибсо")
+                                 f"Админ, какбе ошибсо {e}")
 
     @bot.message_handler(content_types=['text'])
     def message_text(message):
