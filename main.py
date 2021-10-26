@@ -121,6 +121,11 @@ def app():
             info_price = f"{int(drivers['price'][username])} руб/км"
         impressions = 0
         if username in drivers['impressions']:
+            dt_timestamp = int(datetime.datetime.combine(datetime.date.today(), datetime.time(0, 0, 0)).timestamp())
+            if int(drivers['last_impression'][username]) < dt_timestamp:
+                drivers['impressions'][username] = 0
+                curtime = int(time.time())
+                drivers['last_impression'][username] = curtime
             impressions = int(drivers['impressions'][username])
         balance = 0
         if username in drivers['deposit']:
