@@ -10,15 +10,14 @@ import os
 
 # Загружаем секретные ссылки и токены из системы
 REDIS_URL = os.environ['REDIS_URL']
-TELEBOT_TOKEN = os.environ['TELEBOT_TOKEN']
+TELE_TOKEN = os.environ['TELEGRAM_TOKEN']
 
 # Устанавливаем константы
-DEPOSIT_LIMIT = -300
-LIMIT_MESSAGE = f"Ваш баланс исчерпан, лимит {DEPOSIT_LIMIT}. Для пополнения свяжитесь с @whitejoe"
-ADMIN_LIST = [665812965]
-ABOUT_LIMIT = 100
-SEARCH_LIVE_TIME = 300
-IMPRESSION_COST = 1
+DEPOSIT_LIMIT = -300  # Минимальный баланс для поиска
+ADMIN_LIST = [665812965]  # Список админов для спец команд (тут только Олин)
+ABOUT_LIMIT = 100  # Лимит символов в объявлении
+SEARCH_LIVE_TIME = 300  # Время жизни поискового запроса
+IMPRESSION_COST = 1  # Цена одного показа
 CONTENT_TYPES = ["text", "audio", "document", "photo", "sticker", "video", "video_note", "voice", "location", "contact",
                  "new_chat_members", "left_chat_member", "new_chat_title", "new_chat_photo", "delete_chat_photo",
                  "group_chat_created", "supergroup_chat_created", "channel_chat_created", "migrate_to_chat_id",
@@ -29,7 +28,7 @@ CONTENT_TYPES = ["text", "audio", "document", "photo", "sticker", "video", "vide
 def app():
     # redis_url = 'redis://:@localhost:6379'
     redis_url = REDIS_URL
-    bot = telebot.TeleBot(TELEBOT_TOKEN)
+    bot = telebot.TeleBot(TELE_TOKEN)
 
     # База данных водителей
     drivers = {'about': redis.from_url(redis_url, db=1),
@@ -86,10 +85,10 @@ def app():
         for _ in clients_search.keys():
             clients_count += 1
         menu_message = f"Водителей зарегестрировно: {total}\nСейчас доступно: {active}\n" \
-                       f"Пассажиров в поиске: {clients_count}\n 👍 Для поиска машины нажмите “Поиск машины”" \
+                       f"Пассажиров в поиске: {clients_count}\n Канал поддержки https://t.me/BelbekTaxi\n" \
+                       f"👍 Для поиска машины нажмите “Поиск машины”" \
                        f" (или отправьте свои координаты текстом)," \
                        f" бот предложит связаться с водителями, готовыми приехать за вами. "
-
         bot.send_message(message.chat.id, menu_message, reply_markup=menu_keyboard)
 
     # Запрос объявления
@@ -142,8 +141,8 @@ def app():
             dt_timestamp = int(datetime.datetime.combine(datetime.date.today(), datetime.time(0, 0, 0)).timestamp())
             if int(drivers['last_impression'][username]) < dt_timestamp:
                 drivers['impressions'][username] = 0
-                curtime = int(time.time())
-                drivers['last_impression'][username] = curtime
+                current_time = int(time.time())
+                drivers['last_impression'][username] = current_time
             impressions = int(drivers['impressions'][username])
         balance = 0
         if username in drivers['deposit']:
@@ -161,12 +160,13 @@ def app():
                      types.KeyboardButton(text=menu_car_items[1]))
         menu_car.row(types.KeyboardButton(text=menu_car_items[2]),
                      types.KeyboardButton(text=menu_car_items[3]))
-        menu_car_text = "Ваш профиль:\n" + get_profile(username)
+        menu_car_text = "Ваш профиль:\n" + get_profile(username) + "\nДля пополнения баланса свяжитесь с @whitejoe"
         if message.chat.username is not None:
             drivers['username'][username] = message.chat.username
+
         # Если заполнены все поля ...
         if username in drivers['about'] and username in drivers['radius'] and username in drivers['price']:
-            # Баланс инициализируем
+            # Инициализируем баланс
             if username not in drivers['deposit']:
                 drivers['deposit'][username] = 0
             # ... то ставим статус готовности к поиску пассажиров
@@ -188,7 +188,7 @@ def app():
                     menu_car_text = menu_car_text + f"\n\n🚕 Для поиска пассажира нажмите “Поиск пассажира” " \
                                                     f"(или отправьте свои координаты текстом)."
                 else:   # или ...
-                    menu_car_text = menu_car_text + f"\n\n{LIMIT_MESSAGE}"
+                    menu_car_text = menu_car_text + f"\n\nfВаш баланс исчерпан, лимит {DEPOSIT_LIMIT}"
             else:  # покажем ...
                 menu_car_text = menu_car_text + f"\n\nЗадайте имя пользователя в аккаунте Telegram," \
                                                 f" что бы бот мог направить вам пассажиров."
@@ -202,7 +202,8 @@ def app():
         def hav(x):
             return (math.sin(x / 2)) ** 2
 
-        planet_radius = 6371  # Радиус текущей планеты (Земля) в КМ, погрешность 0.5%
+        # Радиус текущей планеты (Земля) в КМ, погрешность 0.5%
+        planet_radius = 6371
         # Координаты из градусов в радианы (у нас же высшая алгебра, а не школьная геометрия?)
         long1_rad = math.pi * long1 / 180
         lat1_rad = math.pi * lat1 / 180
@@ -215,7 +216,7 @@ def app():
 
     # Функция увеличения счетчика просмотров у водителя
     def inc_impression(user_driver):
-        curtime = int(time.time())
+        current_time = int(time.time())
         # Проверка на смену дат и обнуление
         dt_timestamp = int(datetime.datetime.combine(datetime.date.today(), datetime.time(0, 0, 0)).timestamp())
         if user_driver not in drivers['last_impression'] or int(drivers['last_impression'][user_driver]) < dt_timestamp:
@@ -225,7 +226,7 @@ def app():
         # Списываем деньги с баланса
         drivers['deposit'][user_driver] = int(drivers['deposit'][user_driver]) - IMPRESSION_COST
         # Запоминаем время последнего показа водительского объявления пользователю
-        drivers['last_impression'][user_driver] = curtime
+        drivers['last_impression'][user_driver] = current_time
 
     # Формирование списка водителей во время поиска
     def go_search(message, location):
