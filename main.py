@@ -13,12 +13,9 @@ REDIS_URL = os.environ['REDIS_URL']
 TELE_TOKEN = os.environ['TELEGRAM_TOKEN']
 
 # Устанавливаем константы
-IS_MONETIZATION = False
-DEPOSIT_LIMIT = -300  # Минимальный баланс для поиска
 ADMIN_LIST = [665812965]  # Список админов для спец команд (тут только Олин)
 ABOUT_LIMIT = 100  # Лимит символов в объявлении
 SEARCH_LIVE_TIME = 300  # Время жизни поискового запроса
-IMPRESSION_COST = 1  # Цена одного показа
 CONTENT_TYPES = ["text", "audio", "document", "photo", "sticker", "video", "video_note", "voice", "location", "contact",
                  "new_chat_members", "left_chat_member", "new_chat_title", "new_chat_photo", "delete_chat_photo",
                  "group_chat_created", "supergroup_chat_created", "channel_chat_created", "migrate_to_chat_id",
@@ -41,7 +38,7 @@ def app():
                'geo_lat': redis.from_url(redis_url, db=7),
                'impressions': redis.from_url(redis_url, db=8),
                'last_impression': redis.from_url(redis_url, db=9),
-               'deposit': redis.from_url(redis_url, db=10),
+               'views': redis.from_url(redis_url, db=10),
                'name': redis.from_url(redis_url, db=11),
                'username': redis.from_url(redis_url, db=12)}
 
@@ -146,13 +143,12 @@ def app():
                 drivers['last_impression'][username] = current_time
             impressions = int(drivers['impressions'][username])
         balance = 0
-        if username in drivers['deposit']:
-            balance = int(drivers['deposit'][username])
+        if username in drivers['views']:
+            balance = int(drivers['views'][username])
 
         info = f"Объявление: {info_about}\nОриентировочная цена: {info_price}\nРадиус поиска: {info_radius}\n" \
-               f"Показов сегодня: {impressions}"
-        if IS_MONETIZATION:
-            info = info + f"\nБаланс: {balance}"
+               f"Показов сегодня: {impressions}" \
+               f"\nПоказов всего: {balance}"
         return info
 
     # Меню водителя
@@ -164,18 +160,14 @@ def app():
         menu_car.row(types.KeyboardButton(text=menu_car_items[2]),
                      types.KeyboardButton(text=menu_car_items[3]))
         menu_car_text = "Ваш профиль:\n" + get_profile(username)
-        if IS_MONETIZATION:
-            menu_car_text = menu_car_text + f"\n\nСтоимость одного показа: {IMPRESSION_COST} р." \
-                          f"\nМинимальный баланс для поиска: {DEPOSIT_LIMIT} р." \
-                          f"\nДля пополнения свяжитесь с @whitejoe (пока так)"
         if message.chat.username is not None:
             drivers['username'][username] = message.chat.username
 
         # Если заполнены все поля ...
         if username in drivers['about'] and username in drivers['radius'] and username in drivers['price']:
-            # Инициализируем баланс
-            if username not in drivers['deposit']:
-                drivers['deposit'][username] = 0
+            # Инициализируем просмотры
+            if username not in drivers['views']:
+                drivers['views'][username] = 0
             # Ставим статус готовности к поиску пассажиров
             drivers['status'][username] = 0
 
@@ -190,12 +182,10 @@ def app():
         # Если водитель готов к поиску, то покажем кнопку поиска
         if username in drivers['status'] and int(drivers['status'][username]) == 0:
             if message.chat.username is not None:
-                if not IS_MONETIZATION or int(drivers['deposit'][username]) >= DEPOSIT_LIMIT:
-                    menu_car.row(types.KeyboardButton(text=menu_car_items[6], request_location=True))
-                    menu_car_text = menu_car_text + f"\n\n🚕 Для поиска пассажира нажмите “Поиск пассажира” " \
-                                                    f"(или отправьте свои координаты текстом)."
-                else:   # или ...
-                    menu_car_text = menu_car_text + f"\n\nfВаш баланс исчерпан, лимит {DEPOSIT_LIMIT}"
+
+                menu_car.row(types.KeyboardButton(text=menu_car_items[6], request_location=True))
+                menu_car_text = menu_car_text + f"\n\n🚕 Для поиска пассажира нажмите “Поиск пассажира” " \
+                                                f"(или отправьте свои координаты текстом)."
             else:  # покажем ...
                 menu_car_text = menu_car_text + f"\n\nЗадайте имя пользователя в аккаунте Telegram," \
                                                 f" что бы бот мог направить вам пассажиров."
@@ -229,10 +219,10 @@ def app():
         dt_timestamp = int(datetime.datetime.combine(datetime.date.today(), datetime.time(0, 0, 0)).timestamp())
         if user_driver not in drivers['last_impression'] or int(drivers['last_impression'][user_driver]) < dt_timestamp:
             drivers['impressions'][user_driver] = 0
-        # Увеличиваем счетчик
+        # Увеличиваем счетчик дня
         drivers['impressions'][user_driver] = int(drivers['impressions'][user_driver]) + 1
-        # Списываем деньги с баланса
-        drivers['deposit'][user_driver] = int(drivers['deposit'][user_driver]) - IMPRESSION_COST
+        # Увеличиваем счетчик общий
+        drivers['views'][user_driver] = int(drivers['views'][user_driver]) + 1
         # Запоминаем время последнего показа водительского объявления пользователю
         drivers['last_impression'][user_driver] = current_time
 
@@ -281,8 +271,7 @@ def app():
         username = message.chat.id
         # Определение того кто нажал на кнопку
         if username in drivers['status'] and int(drivers['status'][username]) >= 0:  # Водитель
-            if (not IS_MONETIZATION or int(drivers['deposit'][username]) >= DEPOSIT_LIMIT)\
-                    and username in drivers['username']:
+            if username in drivers['username']:
                 # Ставлю водитлею статус "в поиске"
                 drivers['status'][username] = 1
                 drivers['geo_long'][username] = location['longitude']
@@ -319,27 +308,11 @@ def app():
     @bot.message_handler(commands=['list'])
     def list_message(message):
         if message.chat.id in ADMIN_LIST:
-            me = "Список водителей (ID - имя - баланс):\n"
+            me = "Список водителей (ID - имя - просмотры):\n"
             for username in drivers['name'].keys():
                 me = me + f"{username.decode('utf-8')} - {drivers['name'][username].decode('utf-8')}" \
-                          f" - {drivers['deposit'][username]}\n"
+                          f" - {drivers['views'][username]}\n"
             bot.send_message(message.chat.id, me)
-
-    # Пополнение депозита админом специальной командой /deposit Айди_пользователя сумма
-    @bot.message_handler(commands=['deposit'])
-    def deposit_message(message):
-        if message.chat.id in ADMIN_LIST:
-            try:
-                username = message.text.split(' ')[1]
-                dep = int(message.text.split(' ')[2])
-                new_balance = dep + int(drivers['deposit'][username])
-                drivers['deposit'][username] = new_balance
-                bot.send_message(message.chat.id,
-                                 f"Депозит {drivers['name'][username].decode('utf-8')} пополнен на {dep}, "
-                                 f"новый баланс {new_balance}")
-            except Exception as e:
-                bot.send_message(message.chat.id,
-                                 f"Админ, какбе ошибсо {e}")
 
     # Обработка всех команд
     @bot.message_handler(content_types=['text'])
