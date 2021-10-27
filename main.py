@@ -89,7 +89,7 @@ def app():
                        f"👍 Для поиска машины нажмите “Поиск машины”" \
                        f" (или отправьте свои координаты текстом)," \
                        f" бот предложит связаться с водителями, готовыми приехать за вами. "
-        bot.send_message(message.chat.id, menu_message, reply_markup=menu_keyboard)
+        bot.send_message(message.chat.id, menu_message, reply_markup=menu_keyboard, disable_web_page_preview=True)
 
     # Запрос объявления
     def go_about(message):
