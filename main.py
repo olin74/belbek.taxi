@@ -242,13 +242,12 @@ def app():
         if username in clients_search:
             search_list_str = clients_search[username].decode("utf-8")
             search_list = json.loads(search_list_str)
-        active_drivers = 0
+
         # Перебираем всех водителей
         for user_driver_ne in drivers['status'].keys():
             user_driver = user_driver_ne.decode("utf-8")
             # Нам нолько активныуе ("в поиске")
             if int(drivers['status'][user_driver]) == 1:
-                active_drivers += 1
                 # Вычисляем расстояние до водителя
                 dist = get_distance(location['longitude'], location['latitude'],
                                     float(drivers['geo_long'][user_driver]), float(drivers['geo_lat'][user_driver]))
@@ -266,9 +265,10 @@ def app():
         # Запоминаем список просмотренных водителей на некоторое время
         clients_search.setex(username, SEARCH_LIVE_TIME, str_json)
         s_count = len(result_list)
-        m_text = f"Найдено водителей {s_count} из {active_drivers} активных:\n\n{result_message}"
+        m_text = "Ничего не найдено! Рядом с Вами нет водителей готовых подвезти вас, придется попробовать позже."
         if s_count > 0:
-            m_text = m_text + "Можете связаться с любым водителем и договориться с ним о совместной поедке." \
+            m_text = f"Найдено водителей: {s_count}\n\n{result_message}" \
+                     f"Можете связаться с любым водителем и договориться с ним о совместной поедке." \
                               " Приятной дороги, не забудьте пристегнуть ремни безопасности!"
         bot.send_message(message.chat.id, m_text)
 
