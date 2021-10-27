@@ -161,7 +161,8 @@ def app():
         menu_car.row(types.KeyboardButton(text=menu_car_items[2]),
                      types.KeyboardButton(text=menu_car_items[3]))
         menu_car_text = "Ваш профиль:\n" + get_profile(username)\
-                        + f"\n\nМинимальный баланс для поиска: {DEPOSIT_LIMIT}" \
+                        + f"\n\nСтоимость одного показа: {IMPRESSION_COST} р." \
+                          f"\nМинимальный баланс для поиска: {DEPOSIT_LIMIT} р." \
                           f"\nДля пополнения свяжитесь с @whitejoe (пока так)"
         if message.chat.username is not None:
             drivers['username'][username] = message.chat.username
@@ -171,7 +172,7 @@ def app():
             # Инициализируем баланс
             if username not in drivers['deposit']:
                 drivers['deposit'][username] = 0
-            # ... то ставим статус готовности к поиску пассажиров
+            # Ставим статус готовности к поиску пассажиров
             drivers['status'][username] = 0
 
             # Сохраним имя пользователя, если есть
@@ -313,9 +314,10 @@ def app():
     @bot.message_handler(commands=['list'])
     def list_message(message):
         if message.chat.id in ADMIN_LIST:
-            me = ""
+            me = "Список водителей (ID - имя - баланс):\n"
             for username in drivers['name'].keys():
-                me = me + f"{username.decode('utf-8')} - {drivers['name'][username].decode('utf-8')}\n"
+                me = me + f"{username.decode('utf-8')} - {drivers['name'][username].decode('utf-8')}" \
+                          f" - {drivers['deposit'][username]}\n"
             bot.send_message(message.chat.id, me)
 
     # Пополнение депозита админом специальной командой /deposit Айди_пользователя сумма
@@ -328,7 +330,8 @@ def app():
                 new_balance = dep + int(drivers['deposit'][username])
                 drivers['deposit'][username] = new_balance
                 bot.send_message(message.chat.id,
-                                 f"Депозит пополнен на {dep}, новый баланс {new_balance}")
+                                 f"Депозит {drivers['name'][username].decode('utf-8')} пополнен на {dep}, "
+                                 f"новый баланс {new_balance}")
             except Exception as e:
                 bot.send_message(message.chat.id,
                                  f"Админ, какбе ошибсо {e}")
