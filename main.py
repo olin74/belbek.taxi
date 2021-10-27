@@ -275,13 +275,13 @@ class Taxi:
         # redis_url = 'redis://:@localhost:6379'  # Для теста на локальном сервере
         # Старотовое сообщение
 
-        @bot.message_handler(self, commands=['start'])
+        @bot.message_handler(commands=['start'])
         def start_message(message):
             bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
             self.go_start(bot, message)
 
         # Тест вычисления расстояния специальной командой
-        @bot.message_handler(self, commands=['geo'])
+        @bot.message_handler(commands=['geo'])
         def geo_message(message):
             try:
                 long1 = float(message.text.split(' ')[1])
@@ -294,7 +294,7 @@ class Taxi:
                 bot.send_message(message.chat.id, f"%USERNAME% какбе ошибсо {e}")
 
         # Вывод админу списка Айди пользователя с именем
-        @bot.message_handler(self, commands=['list'])
+        @bot.message_handler(commands=['list'])
         def list_message(message):
             if message.chat.id in ADMIN_LIST:
                 me = "Список водителей (ID - имя - просмотры):\n"
