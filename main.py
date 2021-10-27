@@ -13,6 +13,7 @@ REDIS_URL = os.environ['REDIS_URL']
 TELE_TOKEN = os.environ['TELEGRAM_TOKEN']
 
 # Устанавливаем константы
+IS_MONETIZATION=False
 DEPOSIT_LIMIT = -300  # Минимальный баланс для поиска
 ADMIN_LIST = [665812965]  # Список админов для спец команд (тут только Олин)
 ABOUT_LIMIT = 100  # Лимит символов в объявлении
@@ -149,7 +150,9 @@ def app():
             balance = int(drivers['deposit'][username])
 
         info = f"Объявление: {info_about}\nОриентировочная цена: {info_price}\nРадиус поиска: {info_radius}\n" \
-               f"Показов сегодня: {impressions}\nБаланс: {balance}"
+               f"Показов сегодня: {impressions}" \
+        if IS_MONETIZATION:
+            info = info + f"\nБаланс: {balance}"
         return info
 
     # Меню водителя
@@ -161,7 +164,8 @@ def app():
         menu_car.row(types.KeyboardButton(text=menu_car_items[2]),
                      types.KeyboardButton(text=menu_car_items[3]))
         menu_car_text = "Ваш профиль:\n" + get_profile(username)\
-                        + f"\n\nСтоимость одного показа: {IMPRESSION_COST} р." \
+        if IS_MONETIZATION:
+            menu_car_text = menu_car_text + f"\n\nСтоимость одного показа: {IMPRESSION_COST} р." \
                           f"\nМинимальный баланс для поиска: {DEPOSIT_LIMIT} р." \
                           f"\nДля пополнения свяжитесь с @whitejoe (пока так)"
         if message.chat.username is not None:
@@ -186,7 +190,7 @@ def app():
         # Если водитель готов к поиску, то покажем кнопку поиска
         if username in drivers['status'] and int(drivers['status'][username]) == 0:
             if message.chat.username is not None:
-                if int(drivers['deposit'][username]) >= DEPOSIT_LIMIT:
+                if not IS_MONETIZATION or int(drivers['deposit'][username]) >= DEPOSIT_LIMIT:
                     menu_car.row(types.KeyboardButton(text=menu_car_items[6], request_location=True))
                     menu_car_text = menu_car_text + f"\n\n🚕 Для поиска пассажира нажмите “Поиск пассажира” " \
                                                     f"(или отправьте свои координаты текстом)."
@@ -195,7 +199,7 @@ def app():
             else:  # покажем ...
                 menu_car_text = menu_car_text + f"\n\nЗадайте имя пользователя в аккаунте Telegram," \
                                                 f" что бы бот мог направить вам пассажиров."
-        else:  # хуй
+        else:  # &$#
             menu_car_text = menu_car_text + "\n\n Заполните все поля, что бы начать поиск пассажиров!"
         bot.send_message(message.chat.id, menu_car_text, reply_markup=menu_car)
 
@@ -277,7 +281,7 @@ def app():
         username = message.chat.id
         # Определение того кто нажал на кнопку
         if username in drivers['status'] and int(drivers['status'][username]) >= 0:  # Водитель
-            if int(drivers['deposit'][username]) >= DEPOSIT_LIMIT and username in drivers['username']:
+            if (not IS_MONETIZATION or int(drivers['deposit'][username]) >= DEPOSIT_LIMIT) and username in drivers['username']:
                 # Ставлю водитлею статус "в поиске"
                 drivers['status'][username] = 1
                 drivers['geo_long'][username] = location['longitude']
