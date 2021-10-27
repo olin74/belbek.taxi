@@ -43,6 +43,7 @@ def get_distance(long1, lat1, long2, lat2):
 class Taxi:
     def __init__(self):
         redis_url = REDIS_URL
+        # redis_url = 'redis://:@localhost:6379'  # Для теста на локальном сервере
 
         # База данных водителей
         self.drivers = {'about': redis.from_url(redis_url, db=1),
@@ -175,33 +176,42 @@ class Taxi:
             self.drivers['username'][username] = message.chat.username
 
         # Если заполнены все поля ...
-        if username in self.drivers['about'] and username in self.drivers['radius']\
-                and username in self.drivers['price']:
-            # Инициализируем просмотры
-            if username not in self.drivers['views']:
-                self.drivers['views'][username] = 0
-            # Ставим статус готовности к поиску пассажиров
-            self.drivers['status'][username] = 0
+        if username not in self.drivers['about']:
+            self.go_about(bot, message)
+            return
 
-            # Сохраним имя пользователя, если есть
-            name = ""
-            if message.chat.first_name is not None:
-                name = name + message.chat.first_name
-            if message.chat.last_name is not None:
-                name = name + " " + message.chat.last_name
-            self.drivers['name'][username] = name
+        if username not in self.drivers['radius']:
+            self.go_radius(bot, message)
+            return
+
+        if username not in self.drivers['price']:
+            self.go_price(bot, message)
+            return
+
+            # Инициализируем просмотры
+        if username not in self.drivers['views']:
+            self.drivers['views'][username] = 0
+            # Ставим статус готовности к поиску пассажиров
+        self.drivers['status'][username] = 0
+
+        # Сохраним имя пользователя, если есть
+        name = ""
+        if message.chat.first_name is not None:
+            name = name + message.chat.first_name
+        if message.chat.last_name is not None:
+            name = name + " " + message.chat.last_name
+        self.drivers['name'][username] = name
 
         # Если водитель готов к поиску, то покажем кнопку поиска
-        if username in self.drivers['status'] and int(self.drivers['status'][username]) == 0:
-            if message.chat.username is not None:
-                menu_car.row(types.KeyboardButton(text=self.menu_car_items[6], request_location=True))
-                menu_car_text = menu_car_text + f"\n\n🚕 Для поиска пассажира нажмите “Поиск пассажира” " \
-                                                f"(или отправьте свои координаты текстом)."
-            else:
-                menu_car_text = menu_car_text + f"\n\nЗадайте имя пользователя в аккаунте Telegram," \
-                                                f" что бы бот мог направить вам пассажиров."
-        else:  # &$#
-            menu_car_text = menu_car_text + "\n\n Заполните все поля, что бы начать поиск пассажиров!"
+
+        if message.chat.username is not None:
+            menu_car.row(types.KeyboardButton(text=self.menu_car_items[6], request_location=True))
+            menu_car_text = menu_car_text + f"\n\n🚕 Для поиска пассажира нажмите “Поиск пассажира” " \
+                                            f"(или отправьте свои координаты текстом)."
+        else:
+            menu_car_text = menu_car_text + f"\n\nЗадайте имя пользователя в аккаунте Telegram," \
+                                            f" что бы бот мог направить вам пассажиров."
+
         bot.send_message(message.chat.id, menu_car_text, reply_markup=menu_car)
 
     # Функция увеличения счетчика просмотров у водителя
@@ -272,9 +282,7 @@ class Taxi:
     def deploy(self):
         bot = telebot.TeleBot(TELE_TOKEN)
 
-        # redis_url = 'redis://:@localhost:6379'  # Для теста на локальном сервере
-        # Старотовое сообщение
-
+        # Стартовое сообщение
         @bot.message_handler(commands=['start'])
         def start_message(message):
             bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
