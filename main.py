@@ -108,7 +108,7 @@ class Taxi:
         self.drivers['wait'][username] = 0
         bot.send_message(message.chat.id, f"Расскажите немного о себе и машине (не больше {ABOUT_LIMIT} символов),"
                                           f" например: “Ильдар. Синяя Хонда. Вожу быстро, но аккуратно.”"
-                                          f" Для отмены введите /cancel",
+                                          f" Для отмены введите /start",
                          reply_markup=keyboard)
         return
 
@@ -120,7 +120,7 @@ class Taxi:
         self.drivers['wait'][username] = 1
         avg_km = self.get_avg('radius')
         bot.send_message(message.chat.id, f"Задайте расстояние в километрах на которое вы готовы поехать за пассажиром."
-                                          f"\nСреднее среди водителей: {avg_km}. Для отмены введите /cancel",
+                                          f"\nСреднее среди водителей: {avg_km}. Для отмены введите /start",
                          reply_markup=keyboard)
         return
 
@@ -132,7 +132,7 @@ class Taxi:
         self.drivers['wait'][username] = 2
         avg_price = self.get_avg('price')
         bot.send_message(message.chat.id, f"Напишите сколько денег обычно вы берёте за километр пути (примерно)."
-                                          f"\nСреднее среди водителей: {avg_price}.  Для отмены введите /cancel",
+                                          f"\nСреднее среди водителей: {avg_price}.  Для отмены введите /start",
                          reply_markup=keyboard)
         return
 
