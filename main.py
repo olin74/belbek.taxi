@@ -95,7 +95,7 @@ class Taxi:
                 active += 1
         menu_message = f"Водителей зарегестрировно: {total}\nСейчас доступно: {active}\n" \
                        f"Канал поддержки: https://t.me/BelbekTaxi\n\n" \
-                       f"👍 Для начала поиска машины отправьте свою геопозицию нажав на кнопку" \
+                       f"👍 Для поиска машины отправьте свою геопозицию нажав на кнопку" \
                        f" или прислав свои координаты текстом"
         bot.send_message(message.chat.id, menu_message, reply_markup=self.menu_keyboard, disable_web_page_preview=True)
 
@@ -107,7 +107,7 @@ class Taxi:
         self.drivers['wait'][username] = 0
         bot.send_message(message.chat.id, f"Расскажите немного о себе и машине (не больше {ABOUT_LIMIT} символов),"
                                           f" например: “Ильдар. Синяя Хонда. Вожу быстро, но аккуратно.”"
-                                          f" Для отмены введите /start",
+                                          f" Для отмены введите /cancel",
                          reply_markup=keyboard)
         return
 
@@ -119,7 +119,7 @@ class Taxi:
         self.drivers['wait'][username] = 1
         avg_km = self.get_avg('radius')
         bot.send_message(message.chat.id, f"Задайте расстояние в километрах на которое вы готовы поехать за пассажиром."
-                                          f"\nСреднее среди водителей: {avg_km}. Для отмены введите /start",
+                                          f"\nСреднее среди водителей: {avg_km}. Для отмены введите /cancel",
                          reply_markup=keyboard)
         return
 
@@ -131,7 +131,7 @@ class Taxi:
         self.drivers['wait'][username] = 2
         avg_price = self.get_avg('price')
         bot.send_message(message.chat.id, f"Напишите сколько денег обычно вы берёте за километр пути (примерно)."
-                                          f"\nСреднее среди водителей: {avg_price}. Для отмены введите /start",
+                                          f"\nСреднее среди водителей: {avg_price}. Для отмены введите /cancel",
                          reply_markup=keyboard)
         return
 
@@ -209,7 +209,7 @@ class Taxi:
         if message.chat.username is not None:
             menu_car.row(types.KeyboardButton(text=self.menu_car_items[6], request_location=True))
             menu_car_text = menu_car_text + f"\n\n🚖 Для поиска пассажира отправьте свою геопозицию нажав на кнопку" \
-                                            f" или прислав свои координаты текстом."
+                                            f" или прислав свои координаты текстом"
         else:
             menu_car_text = menu_car_text + f"\n\n‼️ Задайте имя пользователя в аккаунте Telegram," \
                                             f" что бы бот мог направить вам пассажиров ‼️"
@@ -287,6 +287,12 @@ class Taxi:
         # Стартовое сообщение
         @bot.message_handler(commands=['start'])
         def start_message(message):
+            bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+            self.go_start(bot, message)
+
+        # Отмена ввода
+        @bot.message_handler(commands=['cancel'])
+        def cancel_message(message):
             bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
             self.go_start(bot, message)
 
