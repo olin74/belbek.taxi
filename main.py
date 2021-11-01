@@ -21,7 +21,7 @@ CONTENT_TYPES = ["text", "audio", "document", "photo", "sticker", "video", "vide
 
 
 # Вычисление расстояния между координатами
-def get_distance(long1, lat1, long2, lat2):
+def get_distance(lat1, long1, lat2, long2):
     # Функция вычисления гаверсинуса
     def hav(x):
         return (math.sin(x / 2)) ** 2
@@ -65,7 +65,7 @@ class Taxi:
         self.menu_stop = "⛔️ Прекратить поиск ⛔️"
         self.menu_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
         self.menu_keyboard.row(types.KeyboardButton(text=self.menu_items[0], request_location=True),
-                          types.KeyboardButton(text=self.menu_items[1]))
+                               types.KeyboardButton(text=self.menu_items[1]))
 
     # Среднее значение среди водителей по произвольному полю
     def get_avg(self, field: str):
@@ -96,7 +96,7 @@ class Taxi:
         menu_message = f"Водителей зарегестрировно: {total}\nСейчас доступно: {active}\n" \
                        f"Канал поддержки: https://t.me/BelbekTaxi\n\n" \
                        f"👍 Для поиска машины отправьте свою геопозицию нажав на кнопку" \
-                       f" или прислав свои координаты текстом"
+                       f" или прислав свои координаты текстом, бот предложит связаться с водителями возле Вас."
         bot.send_message(message.chat.id, menu_message, reply_markup=self.menu_keyboard, disable_web_page_preview=True)
 
     # Запрос объявления
