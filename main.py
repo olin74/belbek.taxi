@@ -63,6 +63,9 @@ class Taxi:
                                'Пополнить баланс',
                                'Поддержка', "✳️ Поиск пассажира ✳️"]
         self.menu_stop = "⛔️ Прекратить поиск ⛔️"
+        self.menu_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+        self.menu_keyboard.row(types.KeyboardButton(text=self.menu_items[0], request_location=True),
+                          types.KeyboardButton(text=self.menu_items[1]))
 
     # Среднее значение среди водителей по произвольному полю
     def get_avg(self, field: str):
@@ -78,17 +81,14 @@ class Taxi:
     # Стартовое сообщение
     def go_start(self, bot, message):
         username = message.chat.id
-        menu_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
-        menu_keyboard.row(types.KeyboardButton(text=self.menu_items[0], request_location=True),
-                          types.KeyboardButton(text=self.menu_items[1]))
+
         # Сброс статуса "в поиске пассажира" и ожидания ввода текста
         if username in self.drivers['status'] and int(self.drivers['status'][username]) >= 0:
             self.drivers['status'][username] = -1
-        if username in self.drivers['wait'] and int(self.drivers['wait'][username]) >= 0:
-            self.drivers['wait'][username] = -1
         # Подсчет статистики водителей (всего и активных), а также пассажиров в поиске
         total = 0
         active = 0
+        self.drivers['wait'][username] = -1
         for dr in self.drivers['status'].keys():
             total += 1
             if int(self.drivers['status'][dr]) == 1:
@@ -98,7 +98,7 @@ class Taxi:
                        f"👍 Для поиска машины нажмите “Поиск машины” (определение геолокации должно быть включено)" \
                        f" или отправьте свои координаты текстом," \
                        f" бот предложит связаться с водителями, готовыми приехать за вами. "
-        bot.send_message(message.chat.id, menu_message, reply_markup=menu_keyboard, disable_web_page_preview=True)
+        bot.send_message(message.chat.id, menu_message, reply_markup=self.menu_keyboard, disable_web_page_preview=True)
 
     # Запрос объявления
     def go_about(self, bot, message):
@@ -259,7 +259,7 @@ class Taxi:
             m_text = f"Найдено водителей: {s_count}\n\n{result_message}" \
                      f"💬 Можете связаться с любым водителем и договориться с ним о совместной поедке." \
                      " Приятной дороги, не забудьте пристегнуть ремни безопасности!"
-        bot.send_message(message.chat.id, m_text)
+        bot.send_message(message.chat.id, m_text, reply_markup=self.menu_keyboard)
 
     # Получены координаты тем или иным образом от пассажира или водителя
     def go_location(self, bot, message, location):
