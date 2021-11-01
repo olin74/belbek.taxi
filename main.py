@@ -83,12 +83,12 @@ class Taxi:
         username = message.chat.id
 
         # Сброс статуса "в поиске пассажира" и ожидания ввода текста
-        if username in self.drivers['status'] and int(self.drivers['status'][username]) >= 0:
-            self.drivers['status'][username] = -1
+        self.drivers['status'][username] = -1
+        self.drivers['wait'][username] = -1
         # Подсчет статистики водителей (всего и активных), а также пассажиров в поиске
         total = 0
         active = 0
-        self.drivers['wait'][username] = -1
+
         for dr in self.drivers['status'].keys():
             total += 1
             if int(self.drivers['status'][dr]) == 1:
@@ -107,7 +107,8 @@ class Taxi:
         # Устанавливаем ожидание текстового ответа для поля "объявление"
         self.drivers['wait'][username] = 0
         bot.send_message(message.chat.id, f"Расскажите немного о себе и машине (не больше {ABOUT_LIMIT} символов),"
-                                          f" например: “Ильдар. Синяя Хонда. Вожу быстро, но аккуратно.”",
+                                          f" например: “Ильдар. Синяя Хонда. Вожу быстро, но аккуратно.”"
+                                          f" Для отмены введите /cancel",
                          reply_markup=keyboard)
         return
 
@@ -119,7 +120,8 @@ class Taxi:
         self.drivers['wait'][username] = 1
         avg_km = self.get_avg('radius')
         bot.send_message(message.chat.id, f"Задайте расстояние в километрах на которое вы готовы поехать за пассажиром."
-                                          f"\nСреднее среди водителей: {avg_km}", reply_markup=keyboard)
+                                          f"\nСреднее среди водителей: {avg_km}. Для отмены введите /cancel",
+                         reply_markup=keyboard)
         return
 
     # Запрос оцены за км
@@ -130,7 +132,8 @@ class Taxi:
         self.drivers['wait'][username] = 2
         avg_price = self.get_avg('price')
         bot.send_message(message.chat.id, f"Напишите сколько денег обычно вы берёте за километр пути (примерно)."
-                                          f"\nСреднее среди водителей: {avg_price}", reply_markup=keyboard)
+                                          f"\nСреднее среди водителей: {avg_price}.  Для отмены введите /cancel",
+                         reply_markup=keyboard)
         return
 
     # Формирование описания профиля водителя
