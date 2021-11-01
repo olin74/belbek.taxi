@@ -132,7 +132,7 @@ class Taxi:
         self.drivers['wait'][username] = 2
         avg_price = self.get_avg('price')
         bot.send_message(message.chat.id, f"Напишите сколько денег обычно вы берёте за километр пути (примерно)."
-                                          f"\nСреднее среди водителей: {avg_price}.  Для отмены введите /start",
+                                          f"\nСреднее среди водителей: {avg_price}. Для отмены введите /start",
                          reply_markup=keyboard)
         return
 
