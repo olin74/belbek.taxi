@@ -22,7 +22,6 @@ CONTENT_TYPES = ["text", "audio", "document", "photo", "sticker", "video", "vide
 
 # Вычисление расстояния между координатами
 def get_distance(long1, lat1, long2, lat2):
-
     # Функция вычисления гаверсинуса
     def hav(x):
         return (math.sin(x / 2)) ** 2
@@ -59,7 +58,7 @@ class Taxi:
                         'name': redis.from_url(redis_url, db=11),
                         'username': redis.from_url(redis_url, db=12)}
 
-        self.menu_items = ['👍 Поиск машины', '🚕 Я водитель']
+        self.menu_items = ['👍 Поиск машины', '🚖 Я водитель']
         self.menu_car_items = ['Изменить объявление', 'Изменить радиус', 'Изменить цену за км', 'Выход',
                                'Пополнить баланс',
                                'Поддержка', "✳️ Поиск пассажира ✳️"]
@@ -109,7 +108,7 @@ class Taxi:
         self.drivers['wait'][username] = 0
         bot.send_message(message.chat.id, f"Расскажите немного о себе и машине (не больше {ABOUT_LIMIT} символов),"
                                           f" например: “Ильдар. Синяя Хонда. Вожу быстро, но аккуратно.”",
-                                          reply_markup=keyboard)
+                         reply_markup=keyboard)
         return
 
     # Запрос радиуса поиска
@@ -167,6 +166,7 @@ class Taxi:
     def go_menu_car(self, bot, message):
         username = message.chat.id
         menu_car = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+        # menu_car.add(self.menu_car_items[i] for i in range(4))
         menu_car.row(types.KeyboardButton(text=self.menu_car_items[0]),
                      types.KeyboardButton(text=self.menu_car_items[1]))
         menu_car.row(types.KeyboardButton(text=self.menu_car_items[2]),
@@ -206,7 +206,7 @@ class Taxi:
 
         if message.chat.username is not None:
             menu_car.row(types.KeyboardButton(text=self.menu_car_items[6], request_location=True))
-            menu_car_text = menu_car_text + f"\n\n🚕 Для поиска пассажира нажмите “Поиск пассажира” " \
+            menu_car_text = menu_car_text + f"\n\n🚖 Для поиска пассажира нажмите “Поиск пассажира” " \
                                             f"(или отправьте свои координаты текстом)."
         else:
             menu_car_text = menu_car_text + f"\n\nЗадайте имя пользователя в аккаунте Telegram," \
@@ -246,9 +246,9 @@ class Taxi:
                 # Если водитель рядом, то добавляем в результирующий список
                 if dist < int(self.drivers['radius'][user_driver]):
                     result_list.append(user_driver)
-                    result_message = result_message + f"🚕 {self.drivers['about'][user_driver].decode('utf-8')}\n" \
-                                                      f"🚖: {dist:.2f} км\n" \
-                                                      f"💰: {int(self.drivers['price'][user_driver])} руб/км\n" \
+                    result_message = result_message + f"🚖 {self.drivers['about'][user_driver].decode('utf-8')}\n" \
+                                                      f"🚕 {dist:.2f} км\n" \
+                                                      f"💰 {int(self.drivers['price'][user_driver])} руб/км\n" \
                                                       f"@{self.drivers['username'][user_driver].decode('utf-8')}\n\n"
                     # Если этого водителя нету в недавнем поиске, то накручиваем ему счетчик просмотра
 
@@ -275,7 +275,7 @@ class Taxi:
                 search_keyboard.row(types.KeyboardButton(text=self.menu_stop))
                 bot.send_message(message.chat.id, f"Идет поиск. Потенциальным пассажирам в указанном вами радиусе бот"
                                                   f" будет показывать ваше оъявление. Ждите, вам напишут.",
-                                                  reply_markup=search_keyboard)
+                                 reply_markup=search_keyboard)
         else:  # На кнопку нажал пассажир
             self.go_search(bot, message, location)
 
