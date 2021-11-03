@@ -93,7 +93,7 @@ class Taxi:
             total += 1
             if int(self.drivers['status'][dr]) == 1:
                 active += 1
-        menu_message = f"Водителей зарегестрировно: {total}\nСейчас доступно: {active}\n" \
+        menu_message = f"Водителей зарегистрировано: {total}\nСейчас доступно: {active}\n" \
                        f"Канал поддержки: https://t.me/BelbekTaxi\n\n" \
                        f"👍 Для поиска машины отправьте свою геопозицию нажав на кнопку" \
                        f" или прислав свои координаты текстом, бот предложит связаться с водителями возле Вас."
@@ -242,9 +242,10 @@ class Taxi:
             # Нам нужны только активныуе ("в поиске")
             if int(self.drivers['status'][user_driver]) == 1:
                 # Вычисляем расстояние до водителя
-                dist = get_distance(location['longitude'], location['latitude'],
-                                    float(self.drivers['geo_long'][user_driver]),
-                                    float(self.drivers['geo_lat'][user_driver]))
+                dist = get_distance(location['latitude'], location['longitude'],
+                                    float(self.drivers['geo_lat'][user_driver]),
+                                    float(self.drivers['geo_long'][user_driver])
+                                    )
                 # Если водитель рядом, то добавляем в результирующий список
                 if dist < int(self.drivers['radius'][user_driver]):
                     result_list.append(user_driver)
@@ -259,7 +260,7 @@ class Taxi:
         m_text = "🤷‍ Ничего не найдено! Рядом с Вами нет водителей готовых подвезти вас, придется попробовать позже."
         if s_count > 0:
             m_text = f"Найдено водителей: {s_count}\n\n{result_message}" \
-                     f"💬 Можете связаться с любым водителем и договориться с ним о совместной поедке." \
+                     f"💬 Можете связаться с любым водителем и договориться с ним о совместной поездке." \
                      " Приятной дороги, не забудьте пристегнуть ремни безопасности!"
         bot.send_message(message.chat.id, m_text, reply_markup=self.menu_keyboard)
 
@@ -300,11 +301,12 @@ class Taxi:
         @bot.message_handler(commands=['geo'])
         def geo_message(message):
             try:
-                long1 = float(message.text.split(' ')[1])
-                lat1 = float(message.text.split(' ')[2])
-                long2 = float(message.text.split(' ')[3])
-                lat2 = float(message.text.split(' ')[4])
-                dist = get_distance(long1, lat1, long2, lat2)
+                lat1 = float(message.text.split(' ')[1])
+                long1 = float(message.text.split(' ')[2])
+                lat2 = float(message.text.split(' ')[3])
+                long2 = float(message.text.split(' ')[4])
+
+                dist = get_distance(lat1, long1, lat2, long2)
                 bot.send_message(message.chat.id, f"Расстояние {dist} км")
             except Exception as e:
                 bot.send_message(message.chat.id, f"%USERNAME% какбе ошибсо {e}")
