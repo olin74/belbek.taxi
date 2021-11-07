@@ -391,7 +391,7 @@ class Taxi:
                 self.go_menu_car(bot, message)
                 return
             # Обработка отправления координат текстом
-            if re.fullmatch("^(-?\d+(\.\d+)?),?\s*(-?\d+(\.\d+)?)$", message.text):
+            if re.fullmatch("^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$", message.text):
                 location = {'longitude': float(message.text.split(',')[0]),
                             'latitude': float(message.text.split(',')[1])}
                 self.go_location(bot, message, location)
