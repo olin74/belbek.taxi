@@ -10,6 +10,7 @@ import os
 # Загружаем секретные ссылки и токены из системы
 REDIS_URL = os.environ['REDIS_URL']
 TELE_TOKEN = os.environ['TELEGRAM_TOKEN']
+SYMBOL = "₽"
 
 # Устанавливаем константы
 ADMIN_LIST = [665812965]  # Список админов для спец команд (тут только Олин)
@@ -26,7 +27,7 @@ def get_distance(lat1, long1, lat2, long2):
     def hav(x):
         return (math.sin(x / 2)) ** 2
 
-    # Радиус текущей планеты (Земля) в км, погрешность 0.5%
+    # Радиус текущей планеты в км, погрешность 0.5%
     planet_radius = 6371
     # Координаты из градусов в радианы
     long1_rad = math.pi * long1 / 180
@@ -42,7 +43,7 @@ def get_distance(lat1, long1, lat2, long2):
 class Taxi:
     def __init__(self):
         redis_url = REDIS_URL
-        # redis_url = 'redis://:@localhost:6379'  # Для теста на локальном сервере
+        #redis_url = 'redis://:@localhost:6379'  # Для теста на локальном сервере
 
         # База данных водителей
         self.drivers = {'about': redis.from_url(redis_url, db=1),
@@ -58,10 +59,10 @@ class Taxi:
                         'name': redis.from_url(redis_url, db=11),
                         'username': redis.from_url(redis_url, db=12)}
 
-        self.menu_items = ['👍 Отправить геопозицию', '🚖 Я водитель']
+        self.menu_items = ['👍 Поиск машины', '🚖 Я водитель']
         self.menu_car_items = ['Изменить объявление', 'Изменить радиус', 'Изменить цену за км', 'Выход',
                                'Пополнить баланс',
-                               'Поддержка', "🚖 Отправить геопозицию"]
+                               'Поддержка', "🚖 Поиск пассажиров"]
         self.menu_stop = "⛔️ Прекратить поиск ⛔️"
         self.menu_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
         self.menu_keyboard.row(types.KeyboardButton(text=self.menu_items[0], request_location=True),
@@ -95,8 +96,9 @@ class Taxi:
                 active += 1
         menu_message = f"Водителей зарегистрировано: {total}\nСейчас доступно: {active}\n" \
                        f"Канал поддержки: https://t.me/BelbekTaxi\n\n" \
-                       f"👍 Для поиска машины отправьте свою геопозицию нажав на кнопку" \
-                       f" или прислав свои координаты текстом, бот предложит связаться с водителями возле Вас."
+                       f"👍 Для поиска машины нажмите “{self.menu_items[0]}”" \
+                       f" (геолокация на телефоне должна быть включена)" \
+                       f" или пришлите свои координаты текстом, бот предложит связаться с водителями возле Вас."
         bot.send_message(message.chat.id, menu_message, reply_markup=self.menu_keyboard, disable_web_page_preview=True)
 
     # Запрос объявления
@@ -130,7 +132,7 @@ class Taxi:
         # Устанавливаем ожидание текстового ответа для цены(числового на самом деле, но проверим это позже)
         self.drivers['wait'][username] = 2
         avg_price = self.get_avg('price')
-        bot.send_message(message.chat.id, f"Напишите сколько денег обычно вы берёте за километр пути (примерно)."
+        bot.send_message(message.chat.id, f"Напишите сколько {SYMBOL} обычно вы берёте за километр пути (примерно)."
                                           f"\nСреднее среди водителей: {avg_price}. Для отмены введите /cancel",
                          reply_markup=keyboard)
         return
@@ -145,7 +147,7 @@ class Taxi:
             info_radius = f"{int(self.drivers['radius'][username])} км"
         info_price = "Поле не заполнено"
         if username in self.drivers['price']:
-            info_price = f"{int(self.drivers['price'][username])} руб/км"
+            info_price = f"{int(self.drivers['price'][username])} {SYMBOL}/км"
         impressions = 0
         if username in self.drivers['impressions']:
             # Проверка на смену дня и сброс счетчика
@@ -208,8 +210,9 @@ class Taxi:
 
         if message.chat.username is not None:
             menu_car.row(types.KeyboardButton(text=self.menu_car_items[6], request_location=True))
-            menu_car_text = menu_car_text + f"\n\n🚖 Для поиска пассажира отправьте свою геопозицию нажав на кнопку" \
-                                            f" или прислав свои координаты текстом"
+            menu_car_text = menu_car_text + f"\n\n🚖 Для поиска пассажира нажмите {self.menu_car_items[6]}" \
+                                            f" (геолокация на телефоне должна быть включена)" \
+                                            f" или пришлите свои координаты текстом"
         else:
             menu_car_text = menu_car_text + f"\n\n‼️ Задайте имя пользователя в аккаунте Telegram," \
                                             f" что бы бот мог направить вам пассажиров ‼️"
@@ -251,7 +254,7 @@ class Taxi:
                     result_list.append(user_driver)
                     result_message = result_message + f"🚖 {self.drivers['about'][user_driver].decode('utf-8')}\n" \
                                                       f"🚕 {dist:.2f} км\n" \
-                                                      f"💰 {int(self.drivers['price'][user_driver])} руб/км\n" \
+                                                      f"💰 {int(self.drivers['price'][user_driver])} {SYMBOL}/км\n" \
                                                       f"💬 @{self.drivers['username'][user_driver].decode('utf-8')}\n\n"
                     # Если этого водителя нету в недавнем поиске, то накручиваем ему счетчик просмотра
 
@@ -294,7 +297,6 @@ class Taxi:
         # Отмена ввода
         @bot.message_handler(commands=['cancel'])
         def cancel_message(message):
-            bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
             self.go_start(bot, message)
 
         # Тест вычисления расстояния специальной командой
