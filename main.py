@@ -98,7 +98,8 @@ class Taxi:
                        f"Канал поддержки: https://t.me/BelbekTaxi\n\n" \
                        f"Нажмите “{self.menu_items[0]}”" \
                        f" (геолокация на телефоне должна быть включена)" \
-                       f" или пришлите свои координаты текстом. Бот предложит связаться с водителями возле Вас."
+                       f" или пришлите свои координаты текстом через запятую." \
+                       f" Бот предложит связаться с водителями возле Вас."
         bot.send_message(message.chat.id, menu_message, reply_markup=self.menu_keyboard, disable_web_page_preview=True)
 
     # Запрос объявления
@@ -392,8 +393,8 @@ class Taxi:
                 return
             # Обработка отправления координат текстом
             if re.fullmatch("^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$", message.text):
-                location = {'longitude': float(message.text.split(',')[0]),
-                            'latitude': float(message.text.split(',')[1])}
+                location = {'latitude': float(message.text.split(',')[0]),
+                            'longitude': float(message.text.split(',')[1])}
                 self.go_location(bot, message, location)
                 return
             # Удаление сообщений не подошедших под ожидаемые нажатия кнопок
