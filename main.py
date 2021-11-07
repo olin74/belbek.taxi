@@ -94,7 +94,7 @@ class Taxi:
             total += 1
             if int(self.drivers['status'][dr]) == 1:
                 active += 1
-        menu_message = f"Водителей зарегистрировано: {total}\nСейчас доступно: {active}\n" \
+        menu_message = f"Водителей зарегистрировано: {total}\nСейчас активно: {active}\n" \
                        f"Канал поддержки: https://t.me/BelbekTaxi\n\n" \
                        f"Нажмите “{self.menu_items[0]}”" \
                        f" (геолокация на телефоне должна быть включена)" \
@@ -210,7 +210,7 @@ class Taxi:
 
         if message.chat.username is not None:
             menu_car.row(types.KeyboardButton(text=self.menu_car_items[6], request_location=True))
-            menu_car_text = menu_car_text + f"\n\nНажмите {self.menu_car_items[6]}" \
+            menu_car_text = menu_car_text + f"\n\nНажмите “{self.menu_car_items[6]}”" \
                                             f" (геолокация на телефоне должна быть включена)" \
                                             f" или пришлите свои координаты текстом."
         else:
@@ -235,13 +235,13 @@ class Taxi:
         self.drivers['last_impression'][user_driver] = current_time
 
     # Формирование списка водителей во время поиска
-    def go_search(self, bot, message, location):
-        result_list = []
-
+    def go_search(self, location):
         result_message = ''
+
         # Перебираем всех водителей
+        geo = {}
         for user_driver_ne in self.drivers['status'].keys():
-            user_driver = user_driver_ne.decode("utf-8")
+            user_driver = int(user_driver_ne)
             # Нам нужны только активныуе ("в поиске")
             if int(self.drivers['status'][user_driver]) == 1:
                 # Вычисляем расстояние до водителя
@@ -251,21 +251,26 @@ class Taxi:
                                     )
                 # Если водитель рядом, то добавляем в результирующий список
                 if dist < int(self.drivers['radius'][user_driver]):
-                    result_list.append(user_driver)
-                    result_message = result_message + f"🚖 {self.drivers['about'][user_driver].decode('utf-8')}\n" \
-                                                      f"🚕 {dist:.2f} км\n" \
-                                                      f"💰 {int(self.drivers['price'][user_driver])} {SYMBOL}/км\n" \
-                                                      f"💬 @{self.drivers['username'][user_driver].decode('utf-8')}\n\n"
-                    # Если этого водителя нету в недавнем поиске, то накручиваем ему счетчик просмотра
+                    geo[user_driver] = dist
 
-                    self.inc_impression(user_driver)
-        s_count = len(result_list)
+        # Сортируем и составляем выдачу текстом
+        sorted_list = sorted(geo, key=geo.get)
+        for user_driver in sorted_list:
+            dist = geo[user_driver]
+            result_message = result_message + f"🚖 {self.drivers['about'][user_driver].decode('utf-8')}\n" \
+                                              f"🚕 {dist:.2f} км\n" \
+                                              f"💰 {int(self.drivers['price'][user_driver])} {SYMBOL}/км\n" \
+                                              f"💬 @{self.drivers['username'][user_driver].decode('utf-8')}\n\n"
+            # Если этого водителя нету в недавнем поиске, то накручиваем ему счетчик просмотра
+            self.inc_impression(user_driver)
+
+        s_count = len(sorted_list)
         m_text = "🤷‍ Ничего не найдено! Рядом с Вами нет водителей готовых подвезти вас, придется попробовать позже."
         if s_count > 0:
             m_text = f"Найдено водителей: {s_count}\n\n{result_message}" \
                      f"💬 Можете связаться с любым водителем и договориться с ним о совместной поездке." \
                      " Приятной дороги, не забудьте пристегнуть ремни безопасности!"
-        bot.send_message(message.chat.id, m_text, reply_markup=self.menu_keyboard)
+        return m_text
 
     # Получены координаты тем или иным образом от пассажира или водителя
     def go_location(self, bot, message, location):
@@ -283,7 +288,8 @@ class Taxi:
                                                   f" будет показывать ваше оъявление. Ждите, вам напишут.",
                                  reply_markup=search_keyboard)
         else:  # На кнопку нажал пассажир
-            self.go_search(bot, message, location)
+            m_text = self.go_search(location)
+            bot.send_message(message.chat.id, m_text, reply_markup=self.menu_keyboard)
 
     def deploy(self):
         bot = telebot.TeleBot(TELE_TOKEN)
@@ -385,7 +391,7 @@ class Taxi:
                 self.go_menu_car(bot, message)
                 return
             # Обработка отправления координат текстом
-            if re.fullmatch("^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$", message.text):
+            if re.fullmatch("^(-?\d+(\.\d+)?),?\s*(-?\d+(\.\d+)?)$", message.text):
                 location = {'longitude': float(message.text.split(',')[0]),
                             'latitude': float(message.text.split(',')[1])}
                 self.go_location(bot, message, location)
