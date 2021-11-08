@@ -295,13 +295,6 @@ class Taxi:
     def deploy(self):
         bot = telebot.TeleBot(TELE_TOKEN)
 
-
-        #  try:
-        #      bot.polling()
-        #  except Exception as e:
-        #
-        #     print("Error ", e)
-
         # Стартовое сообщение
         @bot.message_handler(commands=['start'])
         def start_message(message):
@@ -418,7 +411,11 @@ class Taxi:
         def message_any(message):
             bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
 
-        bot.polling()
+        # bot.polling()
+        try:
+            bot.polling()
+        except Exception as e:
+            print("Error ", e)
 
 
 if __name__ == "__main__":
