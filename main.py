@@ -294,7 +294,7 @@ class Taxi:
 
     def deploy(self):
         bot = telebot.TeleBot(TELE_TOKEN)
-        bot.polling()
+
 
         #  try:
         #      bot.polling()
@@ -417,6 +417,8 @@ class Taxi:
         @bot.message_handler(content_types=CONTENT_TYPES)
         def message_any(message):
             bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+
+        bot.polling()
 
 
 if __name__ == "__main__":
