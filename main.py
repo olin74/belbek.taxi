@@ -294,10 +294,13 @@ class Taxi:
 
     def deploy(self):
         bot = telebot.TeleBot(TELE_TOKEN)
-        try:
-            bot.polling()
-        except Exception as e:
-            print("Error ", e)
+        bot.polling()
+
+        #  try:
+        #      bot.polling()
+        #  except Exception as e:
+        #
+        #     print("Error ", e)
 
         # Стартовое сообщение
         @bot.message_handler(commands=['start'])
