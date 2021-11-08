@@ -294,6 +294,10 @@ class Taxi:
 
     def deploy(self):
         bot = telebot.TeleBot(TELE_TOKEN)
+        try:
+            bot.polling()
+        except Exception as e:
+            print("Error ", e)
 
         # Стартовое сообщение
         @bot.message_handler(commands=['start'])
@@ -317,8 +321,8 @@ class Taxi:
 
                 dist = get_distance(lat1, long1, lat2, long2)
                 bot.send_message(message.chat.id, f"Расстояние {dist} км")
-            except Exception as e:
-                bot.send_message(message.chat.id, f"%USERNAME% какбе ошибсо {e}")
+            except Exception as error:
+                bot.send_message(message.chat.id, f"%USERNAME% какбе ошибсо {error}")
 
         # Вывод админу списка Айди пользователя с именем
         @bot.message_handler(commands=['list'])
@@ -410,8 +414,6 @@ class Taxi:
         @bot.message_handler(content_types=CONTENT_TYPES)
         def message_any(message):
             bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
-
-        bot.polling()
 
 
 if __name__ == "__main__":
