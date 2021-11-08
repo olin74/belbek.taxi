@@ -73,8 +73,9 @@ class Taxi:
         tot = 0
         count = 0
         for k in self.drivers[field].keys():
-            tot += int(self.drivers[field][k])
-            count += 1
+            if int(self.drivers['status'][k]) == 1:
+                tot += int(self.drivers[field][k])
+                count += 1
         if count == 0:
             return 0
         return int(tot / count)
