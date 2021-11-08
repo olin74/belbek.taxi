@@ -1,3 +1,7 @@
+# coder: Olin (telegram: @whitejoe)
+# use for free
+# donate bitcoin: 1MFy9M3g6nxFeg8X1GDYabMtYaiuRcYJPT
+
 import math
 import redis
 import telebot
@@ -61,7 +65,6 @@ class Taxi:
 
         self.menu_items = ['👍 Поиск машины', '🚖 Я водитель']
         self.menu_car_items = ['Изменить объявление', 'Изменить радиус', 'Изменить цену за км', 'Выход',
-                               'Пополнить баланс',
                                'Поддержка', "🚖 Поиск пассажиров"]
         self.menu_stop = "⛔️ Прекратить поиск ⛔️"
         self.menu_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
@@ -211,8 +214,8 @@ class Taxi:
         # Если водитель готов к поиску, то покажем кнопку поиска
 
         if message.chat.username is not None:
-            menu_car.row(types.KeyboardButton(text=self.menu_car_items[6], request_location=True))
-            menu_car_text = menu_car_text + f"\n\nНажмите “{self.menu_car_items[6]}”" \
+            menu_car.row(types.KeyboardButton(text=self.menu_car_items[5], request_location=True))
+            menu_car_text = menu_car_text + f"\n\nНажмите “{self.menu_car_items[5]}”" \
                                             f" (геолокация на телефоне должна быть включена)" \
                                             f" или пришлите свои координаты текстом."
         else:
