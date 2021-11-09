@@ -14,10 +14,11 @@ import os
 # Загружаем секретные ссылки и токены из системы
 REDIS_URL = os.environ['REDIS_URL']
 TELE_TOKEN = os.environ['TELEGRAM_TOKEN']
-SYMBOL = "₽"
 
 # Устанавливаем константы
-ADMIN_LIST = [665812965]  # Список админов для спец команд (тут только Олин)
+SYMBOL = "₽"  # Символ валюты текущей денежной системы
+PLANET_RADIUS = 6371  # Радиус текущей планеты в км, погрешность 0.5%
+ADMIN_LIST = [665812965]  # Список админов для спец команд (тут только WhiteJoe)
 ABOUT_LIMIT = 100  # Лимит символов в объявлении
 CONTENT_TYPES = ["text", "audio", "document", "photo", "sticker", "video", "video_note", "voice", "location", "contact",
                  "new_chat_members", "left_chat_member", "new_chat_title", "new_chat_photo", "delete_chat_photo",
@@ -31,15 +32,13 @@ def get_distance(lat1, long1, lat2, long2):
     def hav(x):
         return (math.sin(x / 2)) ** 2
 
-    # Радиус текущей планеты в км, погрешность 0.5%
-    planet_radius = 6371
     # Координаты из градусов в радианы
     long1_rad = math.pi * long1 / 180
     lat1_rad = math.pi * lat1 / 180
     long2_rad = math.pi * long2 / 180
     lat2_rad = math.pi * lat2 / 180
     # Много геоматематики, пояснять не буду.
-    res = 2 * planet_radius * math.asin(math.sqrt(hav(long2_rad - long1_rad) + math.cos(long1_rad) *
+    res = 2 * PLANET_RADIUS * math.asin(math.sqrt(hav(long2_rad - long1_rad) + math.cos(long1_rad) *
                                                   math.cos(long1_rad) * hav(lat2_rad - lat1_rad)))
     return res
 
@@ -84,7 +83,7 @@ class Taxi:
         return int(tot / count)
 
     # Стартовое сообщение
-    def go_start(self, bot, message):
+    def go_start(self, bot, message, s_message=""):
         username = message.chat.id
 
         # Сброс статуса "в поиске пассажира" и ожидания ввода текста
@@ -95,11 +94,12 @@ class Taxi:
         active = 0
 
         for dr in self.drivers['status'].keys():
-            total += 1
+            if int(self.drivers['status'][dr]) == 0:
+                total += 1
             if int(self.drivers['status'][dr]) == 1:
                 active += 1
         menu_message = f"Водителей зарегистрировано: {total}\nСейчас активно: {active}\n" \
-                       f"Канал поддержки: https://t.me/BelbekTaxi\n\n" \
+                       f"Канал поддержки: https://t.me/BelbekTaxi\n\n {s_message}" \
                        f"Нажмите “{self.menu_items[0]}”" \
                        f" (геолокация на телефоне должна быть включена)" \
                        f" или пришлите свои координаты текстом через запятую." \
@@ -294,7 +294,8 @@ class Taxi:
                                  reply_markup=search_keyboard)
         else:  # На кнопку нажал пассажир
             m_text = self.go_search(location)
-            bot.send_message(message.chat.id, m_text, reply_markup=self.menu_keyboard)
+            self.go_start(bot, message, f"{m_text}\n\n")
+            # bot.send_message(message.chat.id, m_text, reply_markup=self.menu_keyboard)
 
     def deploy(self):
         bot = telebot.TeleBot(TELE_TOKEN)
