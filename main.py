@@ -99,10 +99,10 @@ class Taxi:
                 total += 1
             if int(self.drivers['status'][dr]) == 1:
                 active += 1
-        result_message = f"🧘 Долинных пассажиров: {passages}\n" \
-                         f"🚗 Долинных водителей: {total}\n" \
+        result_message = f"🧘 Пассажиров: {passages}\n" \
+                         f"🚗 Водителей: {total}\n" \
                          f"🚕 Сейчас активно: {active}\n" \
-                         f"🧑‍💻 Канал поддержки: https://t.me/BelbekTaxi\n\n"
+                         f"⛺ Канал поддержки: https://t.me/BelbekTaxi\n\n"
         return result_message
 
     # Стартовое сообщение
