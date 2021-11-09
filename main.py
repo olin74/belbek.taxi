@@ -70,6 +70,11 @@ class Taxi:
         self.menu_keyboard.row(types.KeyboardButton(text=self.menu_items[0], request_location=True),
                                types.KeyboardButton(text=self.menu_items[1]))
 
+        self.start_message = f"Нажмите “{self.menu_items[0]}”" \
+                             f" (геолокация на телефоне должна быть включена)" \
+                             f" или пришлите свои координаты текстом через запятую." \
+                             f" Бот предложит связаться с водителями возле Вас."
+
     # Среднее значение среди водителей по произвольному полю
     def get_avg(self, field: str):
         tot = 0
@@ -82,28 +87,36 @@ class Taxi:
             return 0
         return int(tot / count)
 
-    # Стартовое сообщение
-    def go_start(self, bot, message, s_message=""):
-        username = message.chat.id
-
-        # Сброс статуса "в поиске пассажира" и ожидания ввода текста
-        self.drivers['status'][username] = -1
-        self.drivers['wait'][username] = -1
-        # Подсчет статистики водителей (всего и активных), а также пассажиров в поиске
+    # Подсчет статистики водителей (всего и активных), а также пассажиров
+    def get_stat_message(self):
+        passages = 0
         total = 0
         active = 0
-
         for dr in self.drivers['status'].keys():
-            if int(self.drivers['status'][dr]) == 0:
+            if int(self.drivers['status'][dr]) == -1:
+                passages += 1
+            if dr in self.drivers['views'].keys():
                 total += 1
             if int(self.drivers['status'][dr]) == 1:
                 active += 1
-        menu_message = f"Водителей зарегистрировано: {total}\nСейчас активно: {active}\n" \
-                       f"Канал поддержки: https://t.me/BelbekTaxi\n\n {s_message}" \
-                       f"Нажмите “{self.menu_items[0]}”" \
-                       f" (геолокация на телефоне должна быть включена)" \
-                       f" или пришлите свои координаты текстом через запятую." \
-                       f" Бот предложит связаться с водителями возле Вас."
+        result_message = f"Пользователей сервиса: {passages}\n" \
+                         f"Водителей зарегистрировано: {total}\n" \
+                         f"Сейчас активно: {active}\n" \
+                         f"Канал поддержки: https://t.me/BelbekTaxi\n\n"
+        return result_message
+
+    # Стартовое сообщение
+    def go_start(self, bot, message, s_message):
+        username = message.chat.id
+
+        # Сброс статуса в "поиске пассажира" и ожидания ввода текста
+        self.drivers['status'][username] = -1
+        if username in self.drivers['wait'].keys():
+            self.drivers['wait'][username] = -1
+
+        stat_message = self.get_stat_message()
+        menu_message = f"{stat_message}{s_message}"
+
         bot.send_message(message.chat.id, menu_message, reply_markup=self.menu_keyboard, disable_web_page_preview=True)
 
     # Запрос объявления
@@ -304,12 +317,12 @@ class Taxi:
         @bot.message_handler(commands=['start'])
         def start_message(message):
             bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
-            self.go_start(bot, message)
+            self.go_start(bot, message, self.start_message)
 
         # Отмена ввода
         @bot.message_handler(commands=['cancel'])
         def cancel_message(message):
-            self.go_start(bot, message)
+            self.go_start(bot, message, self.start_message)
 
         # Тест вычисления расстояния специальной командой
         @bot.message_handler(commands=['geo'])
@@ -390,7 +403,7 @@ class Taxi:
             # Обработка кнопки "Выход"
             if message.text == self.menu_car_items[3]:
                 self.drivers['status'][username] = -1
-                self.go_start(bot, message)
+                self.go_start(bot, message, self.start_message)
                 return
             # Обработка кнопки "Прекратить поиск"
             if message.text == self.menu_stop and int(self.drivers['status'][username]) == 1:
