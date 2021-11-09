@@ -105,7 +105,8 @@ class Taxi:
         username = message.chat.id
 
         # Сброс статуса в "поиске пассажира" и ожидания ввода текста
-        self.drivers['status'][username] = -1
+        if username in self.drivers['status'].keys():
+            self.drivers['status'][username] = -1
         if username in self.drivers['wait'].keys():
             self.drivers['wait'][username] = -1
 
@@ -306,6 +307,7 @@ class Taxi:
                                  reply_markup=search_keyboard)
         else:  # На кнопку нажал пассажир
             m_text = self.go_search(location)
+            self.drivers['status'][username] = -1
             bot.send_message(message.chat.id, m_text, reply_markup=self.menu_keyboard)
 
     def deploy(self):
