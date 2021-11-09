@@ -70,11 +70,6 @@ class Taxi:
         self.menu_keyboard.row(types.KeyboardButton(text=self.menu_items[0], request_location=True),
                                types.KeyboardButton(text=self.menu_items[1]))
 
-        self.start_message = f"Нажмите “{self.menu_items[0]}”" \
-                             f" (геолокация на телефоне должна быть включена)" \
-                             f" или пришлите свои координаты текстом через запятую." \
-                             f" Бот предложит связаться с водителями возле Вас."
-
     # Среднее значение среди водителей по произвольному полю
     def get_avg(self, field: str):
         tot = 0
@@ -106,7 +101,7 @@ class Taxi:
         return result_message
 
     # Стартовое сообщение
-    def go_start(self, bot, message, s_message):
+    def go_start(self, bot, message):
         username = message.chat.id
 
         # Сброс статуса в "поиске пассажира" и ожидания ввода текста
@@ -115,7 +110,11 @@ class Taxi:
             self.drivers['wait'][username] = -1
 
         stat_message = self.get_stat_message()
-        menu_message = f"{stat_message}{s_message}"
+        menu_message = f"{stat_message}" \
+                       f"Нажмите “{self.menu_items[0]}” " \
+                       f"(геолокация на телефоне должна быть включена) " \
+                       f"или пришлите свои координаты текстом через запятую. " \
+                       f"Бот предложит связаться с водителями возле Вас."
 
         bot.send_message(message.chat.id, menu_message, reply_markup=self.menu_keyboard, disable_web_page_preview=True)
 
@@ -307,8 +306,7 @@ class Taxi:
                                  reply_markup=search_keyboard)
         else:  # На кнопку нажал пассажир
             m_text = self.go_search(location)
-            self.go_start(bot, message, f"{m_text}\n\n")
-            # bot.send_message(message.chat.id, m_text, reply_markup=self.menu_keyboard)
+            bot.send_message(message.chat.id, m_text, reply_markup=self.menu_keyboard)
 
     def deploy(self):
         bot = telebot.TeleBot(TELE_TOKEN)
@@ -317,12 +315,12 @@ class Taxi:
         @bot.message_handler(commands=['start'])
         def start_message(message):
             bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
-            self.go_start(bot, message, self.start_message)
+            self.go_start(bot, message)
 
         # Отмена ввода
         @bot.message_handler(commands=['cancel'])
         def cancel_message(message):
-            self.go_start(bot, message, self.start_message)
+            self.go_start(bot, message)
 
         # Тест вычисления расстояния специальной командой
         @bot.message_handler(commands=['geo'])
@@ -403,7 +401,7 @@ class Taxi:
             # Обработка кнопки "Выход"
             if message.text == self.menu_car_items[3]:
                 self.drivers['status'][username] = -1
-                self.go_start(bot, message, self.start_message)
+                self.go_start(bot, message)
                 return
             # Обработка кнопки "Прекратить поиск"
             if message.text == self.menu_stop and int(self.drivers['status'][username]) == 1:
