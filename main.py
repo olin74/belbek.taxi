@@ -233,7 +233,8 @@ class Taxi:
                                             f" или пришлите свои координаты текстом."
         else:
             menu_car_text = menu_car_text + f"\n\n‼️ Задайте имя пользователя в аккаунте Telegram," \
-                                            f" что бы бот мог направить вам пассажиров ‼️"
+                                            f" что бы бот мог направить вам пассажиров. Затем нажмите кнопку " \
+                                            f"“{self.menu_car_items[3]}” и снова “{self.menu_items[1]}” ‼️"
 
         bot.send_message(message.chat.id, menu_car_text, reply_markup=menu_car)
 
@@ -355,7 +356,8 @@ class Taxi:
             # Обработка текстовых сообщений от водителя, заполняю объявление
             if username in self.drivers['wait'] and int(self.drivers['wait'][username]) == 0:
                 if len(message.text) <= ABOUT_LIMIT:
-                    self.drivers['about'][username] = message.text
+
+                    self.drivers['about'][username] = str(message.text).replace("\n", " ")
                     self.drivers['wait'][username] = -1
                     self.go_menu_car(bot, message)
                     return
