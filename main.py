@@ -210,10 +210,10 @@ class Taxi:
             self.go_price(bot, message)
             return
 
-            # Инициализируем просмотры
+        # Инициализируем просмотры
         if username not in self.drivers['views']:
             self.drivers['views'][username] = 0
-            # Ставим статус готовности к поиску пассажиров
+        # Ставим статус готовности к поиску пассажиров
         self.drivers['status'][username] = 0
 
         # Сохраним имя пользователя, если есть
@@ -233,8 +233,10 @@ class Taxi:
                                             f" или пришлите свои координаты текстом."
         else:
             menu_car_text = menu_car_text + f"\n\n‼️ Задайте имя пользователя в аккаунте Telegram," \
-                                            f" что бы бот мог направить вам пассажиров. Затем нажмите кнопку " \
-                                            f"“{self.menu_car_items[3]}” и снова “{self.menu_items[1]}” ‼️"
+                                            f" что бы бот мог направить Вам пассажиров ‼️ Для этого зайдите в" \
+                                            f" настройки, справа сверху нажмите 'Изменить', заполните" \
+                                            f" поле 'Имя пользователя'. Затем вернитесь в бота, нажмите кнопку " \
+                                            f"“{self.menu_car_items[3]}” и снова “{self.menu_items[1]}”"
 
         bot.send_message(message.chat.id, menu_car_text, reply_markup=menu_car)
 
