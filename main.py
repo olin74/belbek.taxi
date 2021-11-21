@@ -325,6 +325,7 @@ class Taxi:
         # Отмена ввода
         @bot.message_handler(commands=['cancel'])
         def cancel_message(message):
+            self.drivers['wait'][message.chat.id] = -1
             self.go_start(bot, message)
 
         # Тест вычисления расстояния специальной командой
