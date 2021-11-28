@@ -358,16 +358,12 @@ class Taxi:
             username = message.chat.id
             # Обработка текстовых сообщений от водителя, заполняю объявление
             if username in self.drivers['wait'] and int(self.drivers['wait'][username]) == 0:
-                if len(message.text) <= ABOUT_LIMIT:
 
-                    self.drivers['about'][username] = str(message.text).replace("\n", " ")
-                    self.drivers['wait'][username] = -1
-                    self.go_menu_car(bot, message)
-                    return
-                else:
-                    bot.send_message(message.chat.id, f"‼️ Объявление слишком длинное,"
-                                                      f" ограничение {ABOUT_LIMIT} символов ‼️")
-                    return
+                self.drivers['about'][username] = str(message.text[:ABOUT_LIMIT]).replace("\n\n", "\n")
+                self.drivers['wait'][username] = -1
+                self.go_menu_car(bot, message)
+                return
+
             # Обработка текстовых сообщений от водителя, заполняю радиус
             if username in self.drivers['wait'] and int(self.drivers['wait'][username]) == 1:
                 if str(message.text).isnumeric():
