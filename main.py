@@ -10,6 +10,8 @@ import time
 import datetime
 import re
 import os
+import json
+import Levenshtein
 
 # Загружаем секретные ссылки и токены из системы
 REDIS_URL = os.environ['REDIS_URL']
@@ -61,6 +63,10 @@ class Taxi:
                         'views': redis.from_url(redis_url, db=10),
                         'name': redis.from_url(redis_url, db=11),
                         'username': redis.from_url(redis_url, db=12)}
+
+        # Подгрузка координат населённых пунктов
+        with open("geo_dolina.json") as json_file:
+            self.points = json.load(json_file)
 
         self.menu_items = ['👍 Поиск машины', '🚖 Я водитель']
         self.menu_car_items = ['Изменить объявление', 'Изменить радиус', 'Изменить цену за км', 'Выход',
@@ -293,6 +299,19 @@ class Taxi:
                      " Приятной дороги, не забудьте пристегнуть ремни безопасности!"
         return m_text
 
+    # Определяем введённый населённый пункт и возвращаем его координаты
+    def get_point(self, text):
+        min_r_dist = -1
+        result = None
+        for key, geo in self.points.items():
+            r_dist = Levenshtein.distance(text, key)
+            if min_r_dist < 0 or r_dist < min_r_dist:
+                min_r_dist = r_dist
+                result = key, geo
+            if min_r_dist == 0:
+                break
+        return result
+
     # Получены координаты тем или иным образом от пассажира или водителя
     def go_location(self, bot, message, location):
         username = message.chat.id
@@ -309,6 +328,7 @@ class Taxi:
                                                   f" будет показывать ваше оъявление. Ждите, вам напишут.",
                                  reply_markup=search_keyboard)
         else:  # На кнопку нажал пассажир
+
             m_text = self.go_search(location)
             self.drivers['status'][username] = -1
             bot.send_message(message.chat.id, m_text, reply_markup=self.menu_keyboard)
@@ -416,6 +436,10 @@ class Taxi:
                             'longitude': float(message.text.split(',')[1])}
                 self.go_location(bot, message, location)
                 return
+            else:
+                point_name, location = self.get_point(message.text)
+                bot.send_message(message.chat.id, f"Село: {point_name}")
+                self.go_location(bot, message, location)
             # Удаление сообщений не подошедших под ожидаемые нажатия кнопок
             bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
 
