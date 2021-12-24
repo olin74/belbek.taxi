@@ -120,7 +120,7 @@ class Taxi:
         menu_message = f"{stat_message}" \
                        f"Нажмите “{self.menu_items[0]}” " \
                        f"(геолокация на телефоне должна быть включена) " \
-                       f"или пришлите свои координаты текстом через запятую. " \
+                       f"или отправьте название своего села или пришлите свои координаты текстом через запятую. " \
                        f"Бот предложит связаться с водителями возле Вас."
 
         bot.send_message(message.chat.id, menu_message, reply_markup=self.menu_keyboard, disable_web_page_preview=True)
@@ -236,7 +236,7 @@ class Taxi:
             menu_car.row(types.KeyboardButton(text=self.menu_car_items[5], request_location=True))
             menu_car_text = menu_car_text + f"\n\nНажмите “{self.menu_car_items[5]}”" \
                                             f" (геолокация на телефоне должна быть включена)" \
-                                            f" или пришлите свои координаты текстом."
+                                            f" или пришлите текстом название села (а можно координаты)."
         else:
             menu_car_text = menu_car_text + f"\n\n‼️ Задайте имя пользователя в аккаунте Telegram," \
                                             f" что бы бот мог направить Вам пассажиров ‼️ Для этого зайдите в" \
@@ -325,7 +325,7 @@ class Taxi:
                 search_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
                 search_keyboard.row(types.KeyboardButton(text=self.menu_stop))
                 bot.send_message(message.chat.id, f"⏳ Идет поиск. Потенциальным пассажирам в указанном вами радиусе бот"
-                                                  f" будет показывать ваше оъявление. Ждите, вам напишут.",
+                                                  f" будет показывать Ваше оъявление. Ждите, Вам напишут.",
                                  reply_markup=search_keyboard)
         else:  # На кнопку нажал пассажир
 
@@ -436,12 +436,14 @@ class Taxi:
                             'longitude': float(message.text.split(',')[1])}
                 self.go_location(bot, message, location)
                 return
-            else:
-                point_name, location = self.get_point(message.text)
-                bot.send_message(message.chat.id, f"Село: {point_name}")
-                self.go_location(bot, message, location)
+
+            # Определяем введенное название села
+            point_name, location = self.get_point(message.text)
+            bot.send_message(message.chat.id, f"Село: {point_name}")
+            self.go_location(bot, message, location)
+
             # Удаление сообщений не подошедших под ожидаемые нажатия кнопок
-            bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+            # bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
 
         # Реакция на отправление геопозиции
         @bot.message_handler(content_types=['location'])
